@@ -1,11 +1,13 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use adw::prelude::*;
-use gtk::{gdk, gio};
+use gtk::{gdk, gio, glib};
+use ppocr_app_protocol::{Limits, OcrMetadata};
 
 use crate::{
-    data::{DEMO_LINES, EXPORT_FORMATS, demo_text},
-    preview,
+    backend::{Backend, BackendEvent, ImageJob, detect_image_format},
+    data::EXPORT_FORMATS,
+    preview::{self, PreviewPane},
     settings::{self, SettingsState},
 };
 
@@ -21,10 +23,13 @@ pub fn build_ui(app: &adw::Application) {
         .height_request(620)
         .build();
 
-    let settings_state = Rc::new(SettingsState::default());
+    let (loaded_settings, config_warning) = SettingsState::load();
+    let settings_state = Rc::new(loaded_settings);
+    apply_theme(settings_state.theme.get());
+
     let toolbar_view = adw::ToolbarView::new();
     let toast_overlay = adw::ToastOverlay::new();
-    let status_text = gtk::Label::new(Some("界面演示 · 尚未连接识别后端"));
+    let status_text = gtk::Label::new(Some("请选择图片开始识别"));
     let runtime_summary = gtk::Label::new(None);
     settings::update_runtime_summary(&settings_state, &runtime_summary);
 
@@ -55,6 +60,14 @@ pub fn build_ui(app: &adw::Application) {
             status_for_results.set_label(&format!("已选择文本行 {}", index + 1));
         }
     });
+
+    let backend = build_backend(
+        &preview,
+        &results,
+        &toast_overlay,
+        &status_text,
+        &runtime_summary,
+    );
 
     preview.root.set_margin_end(12);
     let split_view = adw::OverlaySplitView::builder()
@@ -105,23 +118,137 @@ pub fn build_ui(app: &adw::Application) {
         &toast_overlay,
         &status_text,
         &runtime_summary,
-        &results.buffer,
-        settings_state,
+        &results,
+        settings_state.clone(),
         &split_view,
+        backend.clone(),
     );
     toolbar_view.add_top_bar(&header);
 
     let status_bar = build_status_bar(&status_text, &runtime_summary);
     toolbar_view.add_bottom_bar(&status_bar);
     window.set_content(Some(&toolbar_view));
+
+    let backend_for_close = backend.clone();
+    window.connect_close_request(move |_| {
+        backend_for_close.shutdown();
+        glib::Propagation::Proceed
+    });
     window.present();
+    if let Some(warning) = config_warning {
+        add_toast(&toast_overlay, &warning);
+    }
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("PPOCR_GUI_TEST_IMAGE") {
+        submit_image_file(
+            gio::File::for_path(path),
+            backend,
+            settings_state,
+            &toast_overlay,
+            &status_text,
+        );
+    }
 }
 
+fn build_backend(
+    preview: &PreviewPane,
+    results: &ResultsPane,
+    toasts: &adw::ToastOverlay,
+    status: &gtk::Label,
+    runtime_summary: &gtk::Label,
+) -> Rc<Backend> {
+    let preview = preview.clone();
+    let results = results.clone();
+    let toasts = toasts.clone();
+    let status = status.clone();
+    let runtime_summary = runtime_summary.clone();
+    Backend::new(move |event| match event {
+        BackendEvent::Status(message) => status.set_label(&message),
+        BackendEvent::Capabilities(hello) => {
+            let available = hello
+                .providers
+                .iter()
+                .filter(|provider| provider.compiled && provider.ort_reported_available)
+                .count();
+            runtime_summary.set_tooltip_text(Some(&format!(
+                "IPC 已连接：{} / {} 个 Provider 可用",
+                available,
+                hello.providers.len()
+            )));
+        }
+        BackendEvent::Result {
+            source_name,
+            result,
+            processed_png,
+        } => {
+            results.set_metadata(&result.metadata);
+            let model = result.metadata.model_ids.text_recognition.clone();
+            let line_count = result.metadata.text_lines.len();
+            match preview.set_result(processed_png, result.metadata, &source_name) {
+                Ok(()) => {
+                    status.set_label(&format!(
+                        "识别完成 · {line_count} 行 · {} ms",
+                        result.elapsed_ms
+                    ));
+                    runtime_summary.set_label(&format!("{model}  ·  {} ms", result.elapsed_ms));
+                }
+                Err(error) => {
+                    let message = format!("识别成功，但预览图像无法显示：{error}");
+                    status.set_label(&message);
+                    add_toast(&toasts, &message);
+                }
+            }
+        }
+        BackendEvent::Error(message) => {
+            status.set_label("识别失败");
+            add_toast(&toasts, &message);
+        }
+    })
+}
+
+#[derive(Clone)]
 struct ResultsPane {
     root: gtk::Box,
     stack: adw::ViewStack,
     line_list: gtk::ListBox,
     buffer: gtk::TextBuffer,
+    count: gtk::Label,
+    rows: Rc<RefCell<Vec<(adw::ActionRow, String)>>>,
+    original_text: Rc<RefCell<String>>,
+}
+
+impl ResultsPane {
+    fn set_metadata(&self, metadata: &OcrMetadata) {
+        self.line_list.unselect_all();
+        while let Some(child) = self.line_list.first_child() {
+            self.line_list.remove(&child);
+        }
+        let mut rows = self.rows.borrow_mut();
+        rows.clear();
+        for (index, line) in metadata.text_lines.iter().enumerate() {
+            let row = adw::ActionRow::builder()
+                .title(&line.text)
+                .subtitle(format!(
+                    "文本行 {:02}  ·  置信度 {:.1}%",
+                    index + 1,
+                    line.recognition_score * 100.0
+                ))
+                .activatable(true)
+                .build();
+            self.line_list.append(&row);
+            rows.push((row, line.text.to_lowercase()));
+        }
+        self.count
+            .set_label(&format!("{} 行", metadata.text_lines.len()));
+        let text = metadata
+            .text_lines
+            .iter()
+            .map(|line| line.text.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        self.original_text.replace(text.clone());
+        self.buffer.set_text(&text);
+    }
 }
 
 fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane {
@@ -143,7 +270,7 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     top.append(&spacer);
-    let count = gtk::Label::new(Some("8 行"));
+    let count = gtk::Label::new(Some("0 行"));
     count.add_css_class("dim-label");
     count.add_css_class("pill");
     top.append(&count);
@@ -163,7 +290,6 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     root.append(&switcher);
 
     let buffer = gtk::TextBuffer::new(None);
-    buffer.set_text(&demo_text());
     let text_view = gtk::TextView::builder()
         .buffer(&buffer)
         .wrap_mode(gtk::WrapMode::WordChar)
@@ -196,25 +322,11 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     line_list.set_selection_mode(gtk::SelectionMode::Single);
     line_list.add_css_class("boxed-list");
 
-    let mut rows = Vec::with_capacity(DEMO_LINES.len());
-    for (index, line) in DEMO_LINES.iter().enumerate() {
-        let row = adw::ActionRow::builder()
-            .title(line.text)
-            .subtitle(format!(
-                "文本行 {:02}  ·  置信度 {:.1}%",
-                index + 1,
-                line.confidence * 100.0
-            ))
-            .activatable(true)
-            .build();
-        line_list.append(&row);
-        rows.push((row, line.text.to_lowercase()));
-    }
-    let rows = Rc::new(rows);
+    let rows = Rc::new(RefCell::new(Vec::<(adw::ActionRow, String)>::new()));
     let rows_for_search = rows.clone();
     search.connect_search_changed(move |entry| {
         let query = entry.text().trim().to_lowercase();
-        for (row, text) in rows_for_search.iter() {
+        for (row, text) in rows_for_search.borrow().iter() {
             row.set_visible(query.is_empty() || text.contains(&query));
         }
     });
@@ -237,7 +349,7 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     footer.set_margin_bottom(12);
     footer.set_margin_start(14);
     footer.set_margin_end(14);
-    let char_count = gtk::Label::new(Some(&format!("{} 个字符", demo_text().chars().count())));
+    let char_count = gtk::Label::new(Some("0 个字符"));
     char_count.add_css_class("dim-label");
     footer.append(&char_count);
     let footer_spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -266,12 +378,14 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         add_toast(&toasts_for_copy, "识别文本已复制到剪贴板");
     });
 
+    let original_text = Rc::new(RefCell::new(String::new()));
+    let original_for_restore = original_text.clone();
     let buffer_for_restore = buffer.clone();
     let toasts_for_restore = toasts.clone();
     let status_for_restore = status.clone();
     restore.connect_clicked(move |_| {
-        buffer_for_restore.set_text(&demo_text());
-        status_for_restore.set_label("已恢复界面演示结果");
+        buffer_for_restore.set_text(&original_for_restore.borrow());
+        status_for_restore.set_label("已恢复原始识别文本");
         add_toast(&toasts_for_restore, "已恢复原始识别文本");
     });
 
@@ -280,6 +394,9 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         stack,
         line_list,
         buffer,
+        count,
+        rows,
+        original_text,
     }
 }
 
@@ -290,9 +407,10 @@ fn build_header(
     toasts: &adw::ToastOverlay,
     status: &gtk::Label,
     runtime_summary: &gtk::Label,
-    buffer: &gtk::TextBuffer,
+    results_pane: &ResultsPane,
     settings_state: Rc<SettingsState>,
     split_view: &adw::OverlaySplitView,
+    backend: Rc<Backend>,
 ) -> adw::HeaderBar {
     let header = adw::HeaderBar::new();
     let title = adw::WindowTitle::builder()
@@ -318,7 +436,7 @@ fn build_header(
     preferences.set_tooltip_text(Some("模型、产线与界面设置  Ctrl+,"));
     header.pack_end(&preferences);
 
-    let more = build_more_menu(window, toasts, status, buffer);
+    let more = build_more_menu(window);
     header.pack_end(&more);
     let export = build_export_menu(toasts, status);
     header.pack_end(&export);
@@ -339,9 +457,10 @@ fn build_header(
         toasts,
         status,
         runtime_summary,
-        buffer,
+        &results_pane.buffer,
         settings_state,
         split_view,
+        backend,
     );
     header
 }
@@ -356,28 +475,31 @@ fn install_window_actions(
     buffer: &gtk::TextBuffer,
     settings_state: Rc<SettingsState>,
     split_view: &adw::OverlaySplitView,
+    backend: Rc<Backend>,
 ) {
     let open = gio::SimpleAction::new("open", None);
-    let buffer_for_open = buffer.clone();
+    let window_for_open = window.clone();
+    let backend_for_open = backend.clone();
+    let settings_for_open = settings_state.clone();
     let toasts_for_open = toasts.clone();
     let status_for_open = status.clone();
     open.connect_activate(move |_, _| {
-        buffer_for_open.set_text(&demo_text());
-        status_for_open.set_label("打开图片 · 等待 IPC 后端接入");
-        add_toast(&toasts_for_open, "文件选择将在下一阶段接入；已载入演示文档");
+        open_image_dialog(
+            &window_for_open,
+            backend_for_open.clone(),
+            settings_for_open.clone(),
+            &toasts_for_open,
+            &status_for_open,
+        );
     });
     window.add_action(&open);
 
     let capture = gio::SimpleAction::new("capture", None);
-    let buffer_for_capture = buffer.clone();
     let toasts_for_capture = toasts.clone();
-    let status_for_capture = status.clone();
     capture.connect_activate(move |_, _| {
-        buffer_for_capture.set_text(&demo_text());
-        status_for_capture.set_label("截图识别 · 等待 IPC 后端接入");
         add_toast(
             &toasts_for_capture,
-            "截图框选将在下一阶段接入；已载入演示结果",
+            "截图框选将在完成 Wayland 与多平台设计后实现",
         );
     });
     window.add_action(&capture);
@@ -416,6 +538,99 @@ fn install_window_actions(
     app.set_accels_for_action("win.preferences", &["<Primary>comma"]);
 }
 
+fn open_image_dialog(
+    window: &adw::ApplicationWindow,
+    backend: Rc<Backend>,
+    settings: Rc<SettingsState>,
+    toasts: &adw::ToastOverlay,
+    status: &gtk::Label,
+) {
+    let image_filter = gtk::FileFilter::new();
+    image_filter.set_name(Some("支持的图片"));
+    for mime_type in [
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/tiff",
+        "image/bmp",
+        "image/gif",
+    ] {
+        image_filter.add_mime_type(mime_type);
+    }
+    let filters = gio::ListStore::new::<gtk::FileFilter>();
+    filters.append(&image_filter);
+    let dialog = gtk::FileDialog::builder()
+        .title("选择要识别的图片")
+        .accept_label("打开")
+        .modal(true)
+        .filters(&filters)
+        .default_filter(&image_filter)
+        .build();
+    let window = window.clone();
+    let toasts = toasts.clone();
+    let status = status.clone();
+    glib::MainContext::default().spawn_local(async move {
+        let file = match dialog.open_future(Some(&window)).await {
+            Ok(file) => file,
+            Err(error) if error.matches::<gio::IOErrorEnum>(gio::IOErrorEnum::Cancelled) => return,
+            Err(error) => {
+                add_toast(&toasts, &format!("无法打开文件选择器：{error}"));
+                return;
+            }
+        };
+        submit_image_file(file, backend, settings, &toasts, &status);
+    });
+}
+
+fn submit_image_file(
+    file: gio::File,
+    backend: Rc<Backend>,
+    settings: Rc<SettingsState>,
+    toasts: &adw::ToastOverlay,
+    status: &gtk::Label,
+) {
+    let toasts = toasts.clone();
+    let status = status.clone();
+    glib::MainContext::default().spawn_local(async move {
+        status.set_label("正在读取图片");
+        let (bytes, _) = match file.load_bytes_future().await {
+            Ok(value) => value,
+            Err(error) => {
+                status.set_label("读取图片失败");
+                add_toast(&toasts, &format!("无法读取所选图片：{error}"));
+                return;
+            }
+        };
+        if bytes.len() as u64 > Limits::DEFAULT.max_attachment_bytes {
+            status.set_label("图片文件过大");
+            add_toast(&toasts, "图片文件超过 256 MiB IPC 上限");
+            return;
+        }
+        let bytes = bytes.as_ref().to_vec();
+        let Some(format) = detect_image_format(&bytes) else {
+            status.set_label("不支持的图片格式");
+            add_toast(
+                &toasts,
+                "文件内容不是受支持的 PNG、JPEG、WebP、TIFF、BMP 或 GIF",
+            );
+            return;
+        };
+        let source_name = file
+            .basename()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| file.parse_name().to_string());
+        status.set_label("图片已读取，正在连接识别后端");
+        backend.submit(ImageJob {
+            source_name,
+            bytes,
+            format,
+            config: settings.pipeline_config(),
+            keep_worker_warm: settings.keep_worker_warm.get(),
+            idle_timeout_minutes: settings.idle_timeout_minutes.get().round() as u32,
+        });
+    });
+}
+
 fn build_export_menu(toasts: &adw::ToastOverlay, status: &gtk::Label) -> gtk::MenuButton {
     let button = gtk::MenuButton::new();
     let content = adw::ButtonContent::builder()
@@ -447,8 +662,8 @@ fn build_export_menu(toasts: &adw::ToastOverlay, status: &gtk::Label) -> gtk::Me
         let status = status.clone();
         let popover = popover.clone();
         item.connect_clicked(move |_| {
-            status.set_label(&format!("已选择 {format} · 等待 IPC 后端接入"));
-            add_toast(&toasts, &format!("{format} 导出将在后端接入后启用"));
+            status.set_label(&format!("已选择 {format}"));
+            add_toast(&toasts, &format!("{format} 导出将在后续阶段实现"));
             popover.popdown();
         });
         box_.append(&item);
@@ -463,12 +678,7 @@ fn build_export_menu(toasts: &adw::ToastOverlay, status: &gtk::Label) -> gtk::Me
     button
 }
 
-fn build_more_menu(
-    window: &adw::ApplicationWindow,
-    toasts: &adw::ToastOverlay,
-    status: &gtk::Label,
-    buffer: &gtk::TextBuffer,
-) -> gtk::MenuButton {
+fn build_more_menu(window: &adw::ApplicationWindow) -> gtk::MenuButton {
     let button = gtk::MenuButton::new();
     button.set_icon_name("open-menu-symbolic");
     button.add_css_class("flat");
@@ -481,21 +691,6 @@ fn build_more_menu(
     box_.set_margin_start(8);
     box_.set_margin_end(8);
     box_.set_size_request(210, -1);
-
-    let reload = gtk::Button::with_label("重新载入界面演示");
-    reload.add_css_class("flat");
-    let buffer_for_reload = buffer.clone();
-    let toasts_for_reload = toasts.clone();
-    let status_for_reload = status.clone();
-    let popover_for_reload = popover.clone();
-    reload.connect_clicked(move |_| {
-        buffer_for_reload.set_text(&demo_text());
-        status_for_reload.set_label("界面演示 · 尚未连接识别后端");
-        add_toast(&toasts_for_reload, "已重新载入演示数据");
-        popover_for_reload.popdown();
-    });
-    box_.append(&reload);
-    box_.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
 
     let about = gtk::Button::with_label("关于 Paddle OCR");
     about.add_css_class("flat");
@@ -565,6 +760,15 @@ fn copy_buffer(buffer: &gtk::TextBuffer) {
 
 fn add_toast(overlay: &adw::ToastOverlay, message: &str) {
     overlay.add_toast(adw::Toast::builder().title(message).timeout(3).build());
+}
+
+fn apply_theme(theme: u32) {
+    let color_scheme = match theme {
+        1 => adw::ColorScheme::ForceLight,
+        2 => adw::ColorScheme::ForceDark,
+        _ => adw::ColorScheme::Default,
+    };
+    adw::StyleManager::default().set_color_scheme(color_scheme);
 }
 
 fn install_css() {

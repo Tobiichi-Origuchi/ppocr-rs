@@ -70,58 +70,6 @@ pub const EXPORT_FORMATS: &[&str] = &[
     "标注图片 (.png)",
 ];
 
-#[derive(Clone, Copy, Debug)]
-pub struct DemoLine {
-    pub text: &'static str,
-    pub confidence: f32,
-    pub bounds: [f64; 4],
-}
-
-impl DemoLine {
-    const fn new(text: &'static str, confidence: f32, bounds: [f64; 4]) -> Self {
-        Self {
-            text,
-            confidence,
-            bounds,
-        }
-    }
-}
-
-pub const DEMO_LINES: &[DemoLine] = &[
-    DemoLine::new("PaddleOCR 通用文字识别", 0.998, [0.13, 0.10, 0.86, 0.16]),
-    DemoLine::new("原生 GTK4 界面预览", 0.995, [0.26, 0.19, 0.74, 0.24]),
-    DemoLine::new("文件：示例文档.png", 0.991, [0.13, 0.31, 0.53, 0.35]),
-    DemoLine::new(
-        "检测模型：PP-OCRv6_medium_det",
-        0.987,
-        [0.13, 0.39, 0.82, 0.43],
-    ),
-    DemoLine::new(
-        "识别模型：PP-OCRv6_medium_rec",
-        0.984,
-        [0.13, 0.47, 0.82, 0.51],
-    ),
-    DemoLine::new(
-        "支持截图、图片导入与多格式导出",
-        0.976,
-        [0.13, 0.59, 0.87, 0.64],
-    ),
-    DemoLine::new(
-        "前端与推理进程将在下一阶段通过 IPC 连接",
-        0.968,
-        [0.13, 0.67, 0.90, 0.72],
-    ),
-    DemoLine::new("置信度 96.8%", 0.968, [0.13, 0.82, 0.45, 0.86]),
-];
-
-pub fn demo_text() -> String {
-    DEMO_LINES
-        .iter()
-        .map(|line| line.text)
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RectF {
     pub x: f64,
@@ -133,15 +81,6 @@ pub struct RectF {
 impl RectF {
     pub fn contains(self, x: f64, y: f64) -> bool {
         x >= self.x && x <= self.x + self.width && y >= self.y && y <= self.y + self.height
-    }
-
-    pub fn map_normalized(self, bounds: [f64; 4]) -> Self {
-        Self {
-            x: self.x + self.width * bounds[0],
-            y: self.y + self.height * bounds[1],
-            width: self.width * (bounds[2] - bounds[0]),
-            height: self.height * (bounds[3] - bounds[1]),
-        }
     }
 }
 
@@ -159,32 +98,14 @@ mod tests {
     }
 
     #[test]
-    fn demo_text_preserves_line_order() {
-        let text = demo_text();
-        assert_eq!(text.lines().count(), DEMO_LINES.len());
-        assert!(text.starts_with(DEMO_LINES[0].text));
-        assert!(text.ends_with(DEMO_LINES[DEMO_LINES.len() - 1].text));
-    }
-
-    #[test]
-    fn normalized_rectangles_map_and_hit_test() {
-        let page = RectF {
+    fn rectangle_hit_testing_handles_inside_and_outside_points() {
+        let rectangle = RectF {
             x: 10.0,
             y: 20.0,
             width: 100.0,
             height: 200.0,
         };
-        let mapped = page.map_normalized([0.1, 0.2, 0.8, 0.9]);
-        assert_eq!(
-            mapped,
-            RectF {
-                x: 20.0,
-                y: 60.0,
-                width: 70.0,
-                height: 140.0,
-            }
-        );
-        assert!(mapped.contains(50.0, 100.0));
-        assert!(!mapped.contains(5.0, 100.0));
+        assert!(rectangle.contains(50.0, 100.0));
+        assert!(!rectangle.contains(5.0, 100.0));
     }
 }

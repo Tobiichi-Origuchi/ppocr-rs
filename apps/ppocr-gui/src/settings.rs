@@ -1,11 +1,13 @@
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, path::PathBuf, rc::Rc};
 
 use adw::prelude::*;
 
+use crate::config::{AppConfig, ThemePreference};
 use crate::data::{
     DETECTION_MODELS, DOCUMENT_ORIENTATION_MODELS, DOCUMENT_RECTIFICATION_MODELS,
     RECOGNITION_MODELS, RUNTIME_PROVIDERS, TEXTLINE_ORIENTATION_MODELS,
 };
+use ppocr_app_protocol::{PipelineConfig, ProviderConfig};
 
 #[derive(Debug)]
 pub struct SettingsState {
@@ -23,27 +25,152 @@ pub struct SettingsState {
     pub keep_worker_warm: Cell<bool>,
     pub idle_timeout_minutes: Cell<f64>,
     pub theme: Cell<u32>,
+    base_pipeline: PipelineConfig,
+    config_path: Option<PathBuf>,
 }
 
 impl Default for SettingsState {
     fn default() -> Self {
-        Self {
-            detector: Cell::new(0),
-            recognizer: Cell::new(0),
-            document_orientation_enabled: Cell::new(false),
-            document_orientation_model: Cell::new(0),
-            document_rectification_enabled: Cell::new(false),
-            document_rectification_model: Cell::new(0),
-            textline_orientation_enabled: Cell::new(false),
-            textline_orientation_model: Cell::new(0),
-            return_word_boxes: Cell::new(false),
-            provider: Cell::new(0),
-            confidence_percent: Cell::new(50.0),
-            keep_worker_warm: Cell::new(true),
-            idle_timeout_minutes: Cell::new(10.0),
-            theme: Cell::new(0),
+        Self::from_config(AppConfig::default(), None)
+    }
+}
+
+impl SettingsState {
+    pub fn load() -> (Self, Option<String>) {
+        match AppConfig::load() {
+            Ok((config, path)) => (Self::from_config(config, Some(path)), None),
+            Err(error) => (
+                Self::from_config(AppConfig::default(), crate::config::config_path().ok()),
+                Some(format!("配置文件读取失败，已使用默认值：{error}")),
+            ),
         }
     }
+
+    fn from_config(config: AppConfig, config_path: Option<PathBuf>) -> Self {
+        let pipeline = config.pipeline;
+        let document_orientation_enabled = pipeline.document_orientation_model.is_some();
+        let document_rectification_enabled = pipeline.document_rectification_model.is_some();
+        let textline_orientation_enabled = pipeline.textline_orientation_model.is_some();
+        let detector = model_index(DETECTION_MODELS, Some(&pipeline.text_detection_model));
+        let recognizer = model_index(RECOGNITION_MODELS, Some(&pipeline.text_recognition_model));
+        let document_orientation_model = model_index(
+            DOCUMENT_ORIENTATION_MODELS,
+            pipeline.document_orientation_model.as_deref(),
+        );
+        let document_rectification_model = model_index(
+            DOCUMENT_RECTIFICATION_MODELS,
+            pipeline.document_rectification_model.as_deref(),
+        );
+        let textline_orientation_model = model_index(
+            TEXTLINE_ORIENTATION_MODELS,
+            pipeline.textline_orientation_model.as_deref(),
+        );
+        let provider = match pipeline.provider {
+            ProviderConfig::Cpu => 0,
+            ProviderConfig::Cuda { .. } => 1,
+            ProviderConfig::DirectMl { .. } => 2,
+            ProviderConfig::CoreMl => 3,
+            ProviderConfig::WebGpu { .. } => 4,
+            ProviderConfig::MiGraphX { .. } => 5,
+        };
+        let theme = match config.theme {
+            ThemePreference::System => 0,
+            ThemePreference::Light => 1,
+            ThemePreference::Dark => 2,
+        };
+        Self {
+            detector: Cell::new(detector),
+            recognizer: Cell::new(recognizer),
+            document_orientation_enabled: Cell::new(document_orientation_enabled),
+            document_orientation_model: Cell::new(document_orientation_model),
+            document_rectification_enabled: Cell::new(document_rectification_enabled),
+            document_rectification_model: Cell::new(document_rectification_model),
+            textline_orientation_enabled: Cell::new(textline_orientation_enabled),
+            textline_orientation_model: Cell::new(textline_orientation_model),
+            return_word_boxes: Cell::new(pipeline.return_word_boxes),
+            provider: Cell::new(provider),
+            confidence_percent: Cell::new(f64::from(
+                pipeline.text_recognition_score_threshold * 100.0,
+            )),
+            keep_worker_warm: Cell::new(config.keep_worker_warm),
+            idle_timeout_minutes: Cell::new(f64::from(config.idle_timeout_minutes)),
+            theme: Cell::new(theme),
+            base_pipeline: pipeline,
+            config_path,
+        }
+    }
+
+    pub fn pipeline_config(&self) -> PipelineConfig {
+        let mut pipeline = self.base_pipeline.clone();
+        pipeline.text_detection_model = selected_model(DETECTION_MODELS, self.detector.get());
+        pipeline.text_recognition_model = selected_model(RECOGNITION_MODELS, self.recognizer.get());
+        pipeline.document_orientation_model = self.document_orientation_enabled.get().then(|| {
+            selected_model(
+                DOCUMENT_ORIENTATION_MODELS,
+                self.document_orientation_model.get(),
+            )
+        });
+        pipeline.document_rectification_model =
+            self.document_rectification_enabled.get().then(|| {
+                selected_model(
+                    DOCUMENT_RECTIFICATION_MODELS,
+                    self.document_rectification_model.get(),
+                )
+            });
+        pipeline.textline_orientation_model = self.textline_orientation_enabled.get().then(|| {
+            selected_model(
+                TEXTLINE_ORIENTATION_MODELS,
+                self.textline_orientation_model.get(),
+            )
+        });
+        pipeline.provider = match self.provider.get() {
+            1 => ProviderConfig::Cuda { device_id: 0 },
+            2 => ProviderConfig::DirectMl { device_id: 0 },
+            3 => ProviderConfig::CoreMl,
+            4 => ProviderConfig::WebGpu { device_id: 0 },
+            5 => ProviderConfig::MiGraphX { device_id: 0 },
+            _ => ProviderConfig::Cpu,
+        };
+        pipeline.text_recognition_score_threshold = (self.confidence_percent.get() / 100.0) as f32;
+        pipeline.return_word_boxes = self.return_word_boxes.get();
+        pipeline
+    }
+
+    pub fn persist(&self) {
+        let Some(path) = self.config_path.as_deref() else {
+            eprintln!("configuration directory is unavailable; settings were not saved");
+            return;
+        };
+        let theme = match self.theme.get() {
+            1 => ThemePreference::Light,
+            2 => ThemePreference::Dark,
+            _ => ThemePreference::System,
+        };
+        let config = AppConfig {
+            version: 1,
+            pipeline: self.pipeline_config(),
+            keep_worker_warm: self.keep_worker_warm.get(),
+            idle_timeout_minutes: self.idle_timeout_minutes.get().round() as u32,
+            theme,
+        };
+        if let Err(error) = config.save(path) {
+            eprintln!("failed to persist configuration: {error}");
+        }
+    }
+}
+
+fn model_index(models: &[&str], selected: Option<&str>) -> u32 {
+    selected
+        .and_then(|selected| models.iter().position(|model| *model == selected))
+        .unwrap_or(0) as u32
+}
+
+fn selected_model(models: &[&str], selected: u32) -> String {
+    models
+        .get(selected as usize)
+        .copied()
+        .unwrap_or(models[0])
+        .to_owned()
 }
 
 pub fn present_settings(
@@ -99,10 +226,12 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
     detector.connect_selected_notify(move |row| {
         state_for_detector.detector.set(row.selected());
         update_runtime_summary(&state_for_detector, &summary_for_detector);
+        state_for_detector.persist();
     });
     let state_for_recognizer = state.clone();
     recognizer.connect_selected_notify(move |row| {
         state_for_recognizer.recognizer.set(row.selected());
+        state_for_recognizer.persist();
     });
 
     let optional = adw::PreferencesGroup::builder()
@@ -119,11 +248,17 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
         state.document_orientation_model.get(),
         {
             let state = state.clone();
-            move |active| state.document_orientation_enabled.set(active)
+            move |active| {
+                state.document_orientation_enabled.set(active);
+                state.persist();
+            }
         },
         {
             let state = state.clone();
-            move |selected| state.document_orientation_model.set(selected)
+            move |selected| {
+                state.document_orientation_model.set(selected);
+                state.persist();
+            }
         },
     );
     add_optional_module(
@@ -135,11 +270,17 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
         state.document_rectification_model.get(),
         {
             let state = state.clone();
-            move |active| state.document_rectification_enabled.set(active)
+            move |active| {
+                state.document_rectification_enabled.set(active);
+                state.persist();
+            }
         },
         {
             let state = state.clone();
-            move |selected| state.document_rectification_model.set(selected)
+            move |selected| {
+                state.document_rectification_model.set(selected);
+                state.persist();
+            }
         },
     );
     add_optional_module(
@@ -151,11 +292,17 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
         state.textline_orientation_model.get(),
         {
             let state = state.clone();
-            move |active| state.textline_orientation_enabled.set(active)
+            move |active| {
+                state.textline_orientation_enabled.set(active);
+                state.persist();
+            }
         },
         {
             let state = state.clone();
-            move |selected| state.textline_orientation_model.set(selected)
+            move |selected| {
+                state.textline_orientation_model.set(selected);
+                state.persist();
+            }
         },
     );
     page.add(&optional);
@@ -194,10 +341,12 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     provider.connect_selected_notify(move |row| {
         state_for_provider.provider.set(row.selected());
         update_runtime_summary(&state_for_provider, &summary_for_provider);
+        state_for_provider.persist();
     });
     let state_for_confidence = state.clone();
     confidence.connect_value_notify(move |row| {
         state_for_confidence.confidence_percent.set(row.value());
+        state_for_confidence.persist();
     });
 
     let lifecycle = adw::PreferencesGroup::builder().title("识别进程").build();
@@ -221,9 +370,13 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     keep_warm.connect_active_notify(move |row| {
         state_for_keep.keep_worker_warm.set(row.is_active());
         idle_for_switch.set_sensitive(row.is_active());
+        state_for_keep.persist();
     });
     let state_for_idle = state.clone();
-    idle.connect_value_notify(move |row| state_for_idle.idle_timeout_minutes.set(row.value()));
+    idle.connect_value_notify(move |row| {
+        state_for_idle.idle_timeout_minutes.set(row.value());
+        state_for_idle.persist();
+    });
 
     let output = adw::PreferencesGroup::builder().title("结果").build();
     let word_boxes = adw::SwitchRow::builder()
@@ -235,6 +388,7 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     page.add(&output);
     word_boxes.connect_active_notify(move |row| {
         state.return_word_boxes.set(row.is_active());
+        state.persist();
     });
 
     page
@@ -266,6 +420,7 @@ fn interface_page(state: Rc<SettingsState>) -> adw::PreferencesPage {
             _ => adw::ColorScheme::Default,
         };
         adw::StyleManager::default().set_color_scheme(color_scheme);
+        state.persist();
     });
 
     let shortcuts = adw::PreferencesGroup::builder().title("快捷键").build();
@@ -341,4 +496,30 @@ pub fn update_runtime_summary(state: &SettingsState, label: &gtk::Label) {
         .copied()
         .unwrap_or(DETECTION_MODELS[0]);
     label.set_label(&format!("{provider}  ·  {detector}"));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn changed_settings_persist_the_selected_pipeline_as_json() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("ppocr-rs").join("config.json");
+        let state = SettingsState::from_config(AppConfig::default(), Some(path.clone()));
+        state.detector.set(2);
+        state.document_rectification_enabled.set(false);
+        state.return_word_boxes.set(false);
+        state.keep_worker_warm.set(false);
+        state.theme.set(2);
+
+        state.persist();
+
+        let persisted: AppConfig = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        assert_eq!(persisted.pipeline.text_detection_model, "PP-OCRv6_tiny_det");
+        assert_eq!(persisted.pipeline.document_rectification_model, None);
+        assert!(!persisted.pipeline.return_word_boxes);
+        assert!(!persisted.keep_worker_warm);
+        assert_eq!(persisted.theme, ThemePreference::Dark);
+    }
 }

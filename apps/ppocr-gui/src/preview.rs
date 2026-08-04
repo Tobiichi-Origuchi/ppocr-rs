@@ -1,13 +1,55 @@
-use std::{cell::Cell, f64::consts::PI, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    f64::consts::PI,
+    io::Cursor,
+    rc::Rc,
+};
 
+use gdk_pixbuf::Pixbuf;
 use gtk::{cairo, gdk, prelude::*};
+use ppocr_app_protocol::OcrMetadata;
 
-use crate::data::{DEMO_LINES, RectF};
+use crate::data::RectF;
 
+#[derive(Clone)]
 pub struct PreviewPane {
     pub root: gtk::Box,
     pub drawing_area: gtk::DrawingArea,
     pub selected_line: Rc<Cell<Option<usize>>>,
+    subtitle: gtk::Label,
+    badge: gtk::Label,
+    state: Rc<RefCell<PreviewState>>,
+}
+
+#[derive(Default)]
+struct PreviewState {
+    image: Option<Pixbuf>,
+    metadata: Option<OcrMetadata>,
+}
+
+impl PreviewPane {
+    pub fn set_result(
+        &self,
+        processed_png: Vec<u8>,
+        metadata: OcrMetadata,
+        source_name: &str,
+    ) -> Result<(), gtk::glib::Error> {
+        let image = Pixbuf::from_read(Cursor::new(processed_png))?;
+        self.subtitle.set_label(&format!(
+            "{}  ·  {} × {}",
+            source_name, metadata.processed_size.width, metadata.processed_size.height
+        ));
+        self.badge.set_label("识别完成");
+        self.badge.remove_css_class("dim-label");
+        self.badge.add_css_class("accent");
+        self.selected_line.set(None);
+        self.state.replace(PreviewState {
+            image: Some(image),
+            metadata: Some(metadata),
+        });
+        self.drawing_area.queue_draw();
+        Ok(())
+    }
 }
 
 pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> PreviewPane {
@@ -27,8 +69,9 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
     let title = gtk::Label::new(Some("文档预览"));
     title.set_xalign(0.0);
     title.add_css_class("heading");
-    let subtitle = gtk::Label::new(Some("示例文档.png  ·  1480 × 1960"));
+    let subtitle = gtk::Label::new(Some("尚未打开图片"));
     subtitle.set_xalign(0.0);
+    subtitle.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
     subtitle.add_css_class("dim-label");
     subtitle.add_css_class("caption");
     title_box.append(&title);
@@ -38,16 +81,17 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     heading.append(&spacer);
-    let demo_badge = gtk::Label::new(Some("界面演示"));
-    demo_badge.add_css_class("accent");
-    demo_badge.add_css_class("pill");
-    heading.append(&demo_badge);
+    let badge = gtk::Label::new(Some("等待图片"));
+    badge.add_css_class("dim-label");
+    badge.add_css_class("pill");
+    heading.append(&badge);
     root.append(&heading);
 
     let selected_line = Rc::new(Cell::new(None));
     let show_boxes = Rc::new(Cell::new(true));
     let zoom = Rc::new(Cell::new(1.0_f64));
     let page_rect = Rc::new(Cell::new(RectF::default()));
+    let state = Rc::new(RefCell::new(PreviewState::default()));
 
     let drawing_area = gtk::DrawingArea::builder()
         .content_width(660)
@@ -63,9 +107,9 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
     let boxes_for_draw = show_boxes.clone();
     let zoom_for_draw = zoom.clone();
     let page_for_draw = page_rect.clone();
-    drawing_area.set_draw_func(move |area, cr, width, height| {
+    let state_for_draw = state.clone();
+    drawing_area.set_draw_func(move |_area, cr, width, height| {
         draw_preview(
-            area,
             cr,
             width,
             height,
@@ -73,18 +117,22 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
             boxes_for_draw.get(),
             selected_for_draw.get(),
             &page_for_draw,
+            &state_for_draw.borrow(),
         );
     });
 
     let selected_for_click = selected_line.clone();
     let page_for_click = page_rect.clone();
     let drawing_for_click = drawing_area.clone();
+    let state_for_click = state.clone();
     let gesture = gtk::GestureClick::new();
     gesture.connect_pressed(move |_, _, x, y| {
         let page = page_for_click.get();
-        let selected = DEMO_LINES
-            .iter()
-            .position(|line| page.map_normalized(line.bounds).contains(x, y));
+        let selected = state_for_click
+            .borrow()
+            .metadata
+            .as_ref()
+            .and_then(|metadata| line_at(metadata, page, x, y));
         selected_for_click.set(selected);
         on_line_selected(selected);
         drawing_for_click.queue_draw();
@@ -182,12 +230,14 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
         root,
         drawing_area,
         selected_line,
+        subtitle,
+        badge,
+        state,
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 fn draw_preview(
-    _area: &gtk::DrawingArea,
     cr: &cairo::Context,
     width: i32,
     height: i32,
@@ -195,6 +245,7 @@ fn draw_preview(
     show_boxes: bool,
     selected: Option<usize>,
     page_out: &Cell<RectF>,
+    state: &PreviewState,
 ) {
     let canvas = if adw::StyleManager::default().is_dark() {
         gdk::RGBA::new(0.12, 0.12, 0.12, 1.0)
@@ -204,17 +255,23 @@ fn draw_preview(
     set_source_rgba(cr, canvas);
     let _ = cr.paint();
 
-    let aspect = 1480.0 / 1960.0;
-    let available_width = (width as f64 - 54.0).max(240.0);
-    let available_height = (height as f64 - 42.0).max(300.0);
+    let Some(image) = state.image.as_ref() else {
+        page_out.set(RectF::default());
+        draw_empty_state(cr, width, height);
+        return;
+    };
+
+    let aspect = f64::from(image.width()) / f64::from(image.height());
+    let available_width = (f64::from(width) / zoom - 54.0).max(240.0);
+    let available_height = (f64::from(height) / zoom - 42.0).max(300.0);
     let base_height = available_height.min(720.0);
     let base_width = (base_height * aspect).min(available_width);
     let base_height = base_width / aspect;
     let page_width = base_width * zoom;
     let page_height = base_height * zoom;
     let page = RectF {
-        x: (width as f64 - page_width) / 2.0,
-        y: (height as f64 - page_height) / 2.0,
+        x: (f64::from(width) - page_width) / 2.0,
+        y: (f64::from(height) - page_height) / 2.0,
         width: page_width,
         height: page_height,
     };
@@ -223,51 +280,90 @@ fn draw_preview(
     rounded_rectangle(cr, page.x + 2.0, page.y + 5.0, page.width, page.height, 8.0);
     cr.set_source_rgba(0.0, 0.0, 0.0, 0.20);
     let _ = cr.fill();
+
+    let _ = cr.save();
     rounded_rectangle(cr, page.x, page.y, page.width, page.height, 8.0);
-    cr.set_source_rgb(0.985, 0.985, 0.98);
-    let _ = cr.fill_preserve();
+    cr.clip();
+    cr.translate(page.x, page.y);
+    cr.scale(
+        page.width / f64::from(image.width()),
+        page.height / f64::from(image.height()),
+    );
+    gdk::prelude::GdkCairoContextExt::set_source_pixbuf(cr, image, 0.0, 0.0);
+    let _ = cr.paint();
+    let _ = cr.restore();
+
+    rounded_rectangle(cr, page.x, page.y, page.width, page.height, 8.0);
     cr.set_source_rgba(0.4, 0.4, 0.4, 0.28);
     cr.set_line_width(1.0);
     let _ = cr.stroke();
 
-    cr.move_to(page.x + page.width * 0.12, page.y + page.height * 0.065);
-    cr.line_to(page.x + page.width * 0.88, page.y + page.height * 0.065);
-    cr.set_source_rgba(0.45, 0.45, 0.45, 0.25);
-    let _ = cr.stroke();
-
-    for (index, line) in DEMO_LINES.iter().enumerate() {
-        let line_rect = page.map_normalized(line.bounds);
-        if show_boxes {
-            rounded_rectangle(
-                cr,
-                line_rect.x,
-                line_rect.y,
-                line_rect.width,
-                line_rect.height,
-                3.0,
-            );
-            if selected == Some(index) {
-                cr.set_source_rgba(0.21, 0.52, 0.90, 0.22);
-                let _ = cr.fill_preserve();
-                cr.set_line_width(2.0);
-            } else {
-                cr.set_source_rgba(0.21, 0.52, 0.90, 0.07);
-                let _ = cr.fill_preserve();
-                cr.set_line_width(1.0);
-            }
-            cr.set_source_rgba(0.21, 0.52, 0.90, 0.92);
-            let _ = cr.stroke();
-        }
-
-        let layout = pangocairo::functions::create_layout(cr);
-        layout.set_text(line.text);
-        let font_size = (line_rect.height * 0.42).clamp(8.0, 15.0);
-        let font = gtk::pango::FontDescription::from_string(&format!("Sans {font_size:.1}"));
-        layout.set_font_description(Some(&font));
-        cr.move_to(line_rect.x + 4.0, line_rect.y + line_rect.height * 0.22);
-        cr.set_source_rgb(0.18, 0.18, 0.18);
-        pangocairo::functions::show_layout(cr, &layout);
+    if show_boxes && let Some(metadata) = state.metadata.as_ref() {
+        draw_text_boxes(cr, page, metadata, selected);
     }
+}
+
+fn draw_empty_state(cr: &cairo::Context, width: i32, height: i32) {
+    let layout = pangocairo::functions::create_layout(cr);
+    layout.set_text("打开一张图片以开始识别");
+    let font = gtk::pango::FontDescription::from_string("Sans 13");
+    layout.set_font_description(Some(&font));
+    let (text_width, text_height) = layout.pixel_size();
+    cr.move_to(
+        (f64::from(width - text_width) / 2.0).max(16.0),
+        (f64::from(height - text_height) / 2.0).max(16.0),
+    );
+    cr.set_source_rgba(0.45, 0.45, 0.45, 0.95);
+    pangocairo::functions::show_layout(cr, &layout);
+}
+
+fn draw_text_boxes(
+    cr: &cairo::Context,
+    page: RectF,
+    metadata: &OcrMetadata,
+    selected: Option<usize>,
+) {
+    let image_width = f64::from(metadata.processed_size.width.max(1));
+    let image_height = f64::from(metadata.processed_size.height.max(1));
+    for (index, line) in metadata.text_lines.iter().enumerate() {
+        cr.new_path();
+        for (point_index, point) in line.polygon.iter().enumerate() {
+            let x = page.x + f64::from(point.x) / image_width * page.width;
+            let y = page.y + f64::from(point.y) / image_height * page.height;
+            if point_index == 0 {
+                cr.move_to(x, y);
+            } else {
+                cr.line_to(x, y);
+            }
+        }
+        cr.close_path();
+        if selected == Some(index) {
+            cr.set_source_rgba(0.21, 0.52, 0.90, 0.24);
+            let _ = cr.fill_preserve();
+            cr.set_line_width(2.0);
+        } else {
+            cr.set_source_rgba(0.21, 0.52, 0.90, 0.08);
+            let _ = cr.fill_preserve();
+            cr.set_line_width(1.0);
+        }
+        cr.set_source_rgba(0.21, 0.52, 0.90, 0.92);
+        let _ = cr.stroke();
+    }
+}
+
+fn line_at(metadata: &OcrMetadata, page: RectF, x: f64, y: f64) -> Option<usize> {
+    if !page.contains(x, y) {
+        return None;
+    }
+    let image_x = ((x - page.x) / page.width) * f64::from(metadata.processed_size.width);
+    let image_y = ((y - page.y) / page.height) * f64::from(metadata.processed_size.height);
+    metadata.text_lines.iter().position(|line| {
+        let [left, top, right, bottom] = line.bounding_box;
+        image_x >= f64::from(left)
+            && image_x <= f64::from(right)
+            && image_y >= f64::from(top)
+            && image_y <= f64::from(bottom)
+    })
 }
 
 fn set_source_rgba(cr: &cairo::Context, color: gdk::RGBA) {

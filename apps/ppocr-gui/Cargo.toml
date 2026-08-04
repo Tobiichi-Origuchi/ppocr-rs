@@ -7,5 +7,15 @@ publish = false
 
 [dependencies]
 adw = { package = "libadwaita", version = "=0.9.2", features = ["v1_5"] }
+async-channel = "2.5"
+dirs = "6.0"
+gdk-pixbuf = "0.22.0"
 gtk = { package = "gtk4", version = "=0.11.3", features = ["v4_14"] }
 pangocairo = "=0.22.8"
+ppocr-app-protocol = { path = "../../crates/ppocr-app-protocol" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+
+[dev-dependencies]
+tempfile = "3.20"
