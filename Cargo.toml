@@ -10,14 +10,25 @@ description = "A Rust implementation of the PaddleOCR general OCR pipeline"
 name = "ppocr"
 path = "src/lib.rs"
 
+[features]
+default = ["ort-download-binaries"]
+ort-download-binaries = ["ort/download-binaries", "ort/tls-rustls", "ort/copy-dylibs"]
+
 [dependencies]
+clipper2-rust = "1.1.0"
 dirs = "6.0"
 hf-hub = { version = "1.0.0", features = ["blocking", "rustls-tls"] }
+image = { version = "0.25.8", default-features = false, features = ["bmp", "gif", "jpeg", "png", "tiff", "webp"] }
+imageproc = { version = "0.27.0", default-features = false }
+ndarray = "0.17.1"
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "api-27"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde-saphyr = { version = "1.0.0", default-features = false, features = ["deserialize"] }
 sha1 = "0.11"
 sha2 = "0.11"
 thiserror = "2.0"
+unicode-bidi = "0.3.18"
 
 [dev-dependencies]
 tempfile = "3.20"
