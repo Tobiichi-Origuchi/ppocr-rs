@@ -278,12 +278,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipper2-rust"
-version = "1.1.0"
+name = "clipper-sys"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fd663fe209e7030c956e3be4c051dcc20cdb73da794f31466762cff12ca11bf"
+checksum = "b5141c32419064aef7322f754b92fd4ea53c360c1ad984ec38b58af533eba3ac"
 dependencies = [
- "num-traits",
+ "cc",
 ]
 
 [[package]]
@@ -1803,7 +1803,7 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 name = "ppocr-rs"
 version = "0.1.0"
 dependencies = [
- "clipper2-rust",
+ "clipper-sys",
  "dirs",
  "hf-hub",
  "image",

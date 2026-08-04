@@ -38,9 +38,8 @@ pub(crate) struct ImageClassifier {
 
 #[derive(Debug, Clone, Copy)]
 struct Normalization {
-    mean: [f32; 3],
-    std: [f32; 3],
-    scale: f32,
+    alpha: [f32; 3],
+    beta: [f32; 3],
 }
 
 impl std::fmt::Debug for ImageClassifier {
@@ -281,8 +280,7 @@ impl ImageClassifier {
             width,
             height,
             move |channel, value| {
-                (value * normalization.scale - normalization.mean[channel])
-                    / normalization.std[channel]
+                value * normalization.alpha[channel] + normalization.beta[channel]
             },
         ))
     }
@@ -302,9 +300,16 @@ fn parse_normalization(model_id: &str, config: &NormalizeImageConfig) -> Result<
         return invalid_config(model_id, "NormalizeImage channel_num must be 3");
     }
     Ok(Normalization {
-        mean: [config.mean[0], config.mean[1], config.mean[2]],
-        std: [config.std[0], config.std[1], config.std[2]],
-        scale: config.scale.0,
+        alpha: [
+            (config.scale.0 / config.std[0]) as f32,
+            (config.scale.0 / config.std[1]) as f32,
+            (config.scale.0 / config.std[2]) as f32,
+        ],
+        beta: [
+            (-config.mean[0] / config.std[0]) as f32,
+            (-config.mean[1] / config.std[1]) as f32,
+            (-config.mean[2] / config.std[2]) as f32,
+        ],
     })
 }
 

@@ -81,9 +81,8 @@ pub struct TextDetectionResult {
 pub struct TextDetector {
     model_id: String,
     session: Session,
-    mean: [f32; 3],
-    std: [f32; 3],
-    scale: f32,
+    alpha: [f32; 3],
+    beta: [f32; 3],
     limit_side_len: usize,
     limit_type: DetectionSizeLimit,
     max_side_limit: usize,
@@ -146,6 +145,9 @@ impl TextDetector {
             .ok_or_else(|| invalid_config_error(model_id, "NormalizeImage is missing"))?;
         let mean = three_values(model_id, "NormalizeImage.mean", &normalization.mean)?;
         let std = three_values(model_id, "NormalizeImage.std", &normalization.std)?;
+        if std.contains(&0.0) {
+            return invalid_config(model_id, "NormalizeImage std values must be non-zero");
+        }
         if !normalization.order.eq_ignore_ascii_case("hwc") {
             return invalid_config(model_id, "NormalizeImage.order must be hwc");
         }
@@ -166,13 +168,18 @@ impl TextDetector {
         });
         let session = load_session(onnx_path, &options.session)?;
         validate_session(model_id, &session)?;
+        let alpha = std.map(|std| (normalization.scale.0 / std) as f32);
+        let beta = [
+            (-mean[0] / std[0]) as f32,
+            (-mean[1] / std[1]) as f32,
+            (-mean[2] / std[2]) as f32,
+        ];
 
         Ok(Self {
             model_id: model_id.to_owned(),
             session,
-            mean,
-            std,
-            scale: normalization.scale.0,
+            alpha,
+            beta,
             limit_side_len,
             limit_type,
             max_side_limit: options.max_side_limit,
@@ -226,7 +233,7 @@ impl TextDetector {
             source_height,
             resize_width,
             resize_height,
-            |channel, value| (value * self.scale - self.mean[channel]) / self.std[channel],
+            |channel, value| value * self.alpha[channel] + self.beta[channel],
         );
         let input = TensorRef::from_array_view((
             [1usize, 3, resize_height, resize_width],
@@ -328,7 +335,7 @@ fn require_kind(model_id: &str, expected: ModelKind) -> Result<()> {
     Ok(())
 }
 
-fn three_values(model_id: &str, name: &str, values: &[f32]) -> Result<[f32; 3]> {
+fn three_values(model_id: &str, name: &str, values: &[f64]) -> Result<[f64; 3]> {
     values.try_into().map_err(|_| {
         invalid_config_error(
             model_id,

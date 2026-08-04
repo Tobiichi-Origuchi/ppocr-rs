@@ -266,11 +266,7 @@ impl TextRecognizer {
     }
 
     fn padded_width(&self, image: &RgbImage) -> usize {
-        let aspect_width = (self.image_height as f64 * image.width() as f64 / image.height() as f64)
-            .ceil() as usize;
-        self.base_image_width
-            .max(aspect_width)
-            .min(MAX_RECOGNITION_WIDTH)
+        padded_width_for(self.image_height, self.base_image_width, image)
     }
 
     fn resized_width(&self, image: &RgbImage, padded_width: usize) -> usize {
@@ -278,6 +274,14 @@ impl TextRecognizer {
             .ceil() as usize;
         aspect_width.min(padded_width).max(1)
     }
+}
+
+fn padded_width_for(image_height: usize, base_image_width: usize, image: &RgbImage) -> usize {
+    let aspect_width =
+        (image_height as f64 * image.width() as f64 / image.height() as f64).floor() as usize;
+    base_image_width
+        .max(aspect_width)
+        .min(MAX_RECOGNITION_WIDTH)
 }
 
 fn bidi_display(text: &str) -> String {
@@ -321,5 +325,14 @@ mod tests {
     #[test]
     fn bidi_reorders_arabic_for_display() {
         assert_eq!(bidi_display("مرحبا 123"), "123 ابحرم");
+    }
+
+    #[test]
+    fn batch_width_uses_paddlex_floor_before_resize_ceil() {
+        let image = RgbImage::new(514, 64);
+        assert_eq!(padded_width_for(48, 320, &image), 385);
+
+        let narrow = RgbImage::new(100, 100);
+        assert_eq!(padded_width_for(48, 320, &narrow), 320);
     }
 }

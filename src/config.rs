@@ -145,15 +145,15 @@ pub(crate) struct DetResizeConfig {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct NormalizeImageConfig {
-    pub mean: Vec<f32>,
-    pub std: Vec<f32>,
+    pub mean: Vec<f64>,
+    pub std: Vec<f64>,
     pub scale: Scale,
     pub order: String,
     pub channel_num: Option<usize>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Scale(pub f32);
+pub(crate) struct Scale(pub f64);
 
 impl<'de> Deserialize<'de> for Scale {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
@@ -163,7 +163,7 @@ impl<'de> Deserialize<'de> for Scale {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum Repr {
-            Number(f32),
+            Number(f64),
             Text(String),
         }
 
@@ -260,7 +260,7 @@ mod tests {
             scale: Scale,
         }
         let parsed: Wrapper = serde_saphyr::from_str("scale: 1./255.\n").unwrap();
-        assert!((parsed.scale.0 - 1.0 / 255.0).abs() < f32::EPSILON);
+        assert!((parsed.scale.0 - 1.0 / 255.0).abs() < f64::EPSILON);
     }
 
     #[test]
