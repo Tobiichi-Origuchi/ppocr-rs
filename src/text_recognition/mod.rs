@@ -146,6 +146,15 @@ impl TextRecognizer {
 
     /// Recognize a batch, padding only this batch to its widest selected crop.
     pub fn recognize_batch(&mut self, images: &[RgbImage]) -> Result<Vec<TextRecognitionResult>> {
+        let images: Vec<&RgbImage> = images.iter().collect();
+        self.recognize_batch_refs(&images)
+    }
+
+    /// Recognize borrowed crops without cloning them when their order is indirect.
+    pub fn recognize_batch_refs(
+        &mut self,
+        images: &[&RgbImage],
+    ) -> Result<Vec<TextRecognitionResult>> {
         if images.is_empty() {
             return Ok(Vec::new());
         }
@@ -167,7 +176,7 @@ impl TextRecognizer {
         let sample_len = 3 * self.image_height * batch_width;
         let mut batch = vec![0.0f32; sample_len * images.len()];
 
-        for (batch_index, image) in images.iter().enumerate() {
+        for (batch_index, &image) in images.iter().enumerate() {
             let resized_width = self.resized_width(image, padded_widths[batch_index]);
             let resized = resize_rgb_to_bgr_chw(
                 image,

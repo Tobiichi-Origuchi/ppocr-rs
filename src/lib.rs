@@ -10,6 +10,7 @@ pub mod document_orientation;
 pub mod document_rectification;
 pub mod image_geometry;
 pub mod models;
+pub mod pipeline;
 pub mod text_detection;
 pub mod text_recognition;
 pub mod textline_orientation;
@@ -20,6 +21,9 @@ pub use document_orientation::{
 pub use document_rectification::{DocumentRectifier, DocumentRectifierOptions};
 pub use error::{OcrError, Result};
 pub use image::RgbImage;
+pub use pipeline::{
+    OcrPipeline, OcrPipelineBuilder, OcrPipelineOptions, OcrPipelineRegion, OcrPipelineResult,
+};
 pub use runtime::OrtSessionOptions;
 pub use text_detection::{
     DetectedTextRegion, DetectionSizeLimit, Point, TextDetectionResult, TextDetector,

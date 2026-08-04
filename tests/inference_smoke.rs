@@ -1,7 +1,7 @@
 use image::{Rgb, RgbImage};
 use ppocr::{
     DocumentOrientationClassifier, DocumentOrientationClassifierOptions, DocumentRectifier,
-    DocumentRectifierOptions, ModelDownloader, ModelDownloaderOptions, TextDetector,
+    DocumentRectifierOptions, ModelDownloader, ModelDownloaderOptions, OcrPipeline, TextDetector,
     TextDetectorOptions, TextRecognizer, TextRecognizerOptions, TextlineOrientationClassifier,
     TextlineOrientationClassifierOptions,
 };
@@ -69,4 +69,28 @@ fn document_rectifier_runs_end_to_end() {
     let image = RgbImage::from_pixel(128, 64, Rgb([255, 255, 255]));
     let output = rectifier.rectify(&image).unwrap();
     assert_eq!(output.dimensions(), image.dimensions());
+}
+
+#[test]
+#[ignore = "downloads only the selected detection and recognition models from Hugging Face"]
+fn selected_minimal_pipeline_runs_end_to_end() {
+    let downloader = ModelDownloader::new(ModelDownloaderOptions::default()).unwrap();
+    let mut pipeline = OcrPipeline::builder(&downloader)
+        .text_detection_model("PP-OCRv6_tiny_det")
+        .text_recognition_model("PP-OCRv6_tiny_rec")
+        .disable_document_orientation()
+        .disable_document_rectification()
+        .disable_textline_orientation()
+        .build()
+        .unwrap();
+    let image = RgbImage::from_pixel(128, 64, Rgb([255, 255, 255]));
+    let result = pipeline.predict(&image).unwrap();
+    assert_eq!(result.processed_image.dimensions(), image.dimensions());
+    assert!(result.document_orientation.is_none());
+    assert!(
+        result
+            .regions
+            .iter()
+            .all(|region| region.recognition.score.is_finite())
+    );
 }

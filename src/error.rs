@@ -33,6 +33,8 @@ pub enum OcrError {
     EmptyImage,
     #[error("invalid image geometry: {reason}")]
     InvalidGeometry { reason: String },
+    #[error("invalid OCR pipeline configuration: {reason}")]
+    InvalidPipelineConfig { reason: String },
     #[error("invalid inference output for model {model_id:?}: {reason}")]
     InvalidOutput { model_id: String, reason: String },
     #[error(transparent)]
