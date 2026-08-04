@@ -89,8 +89,13 @@ fn selected_minimal_pipeline_runs_end_to_end() {
     assert!(result.document_orientation.is_none());
     assert!(
         result
-            .regions
+            .text_lines
             .iter()
-            .all(|region| region.recognition.score.is_finite())
+            .all(|line| line.recognition_score.is_finite())
     );
+    let batch = pipeline
+        .predict_batch(&[image.clone(), image.clone()])
+        .unwrap();
+    assert_eq!(batch.len(), 2);
+    assert!(pipeline.predict_batch(&[]).unwrap().is_empty());
 }

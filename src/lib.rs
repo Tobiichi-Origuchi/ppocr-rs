@@ -22,12 +22,13 @@ pub use document_rectification::{DocumentRectifier, DocumentRectifierOptions};
 pub use error::{OcrError, Result};
 pub use image::RgbImage;
 pub use pipeline::{
-    OcrPipeline, OcrPipelineBuilder, OcrPipelineOptions, OcrPipelineRegion, OcrPipelineResult,
+    OcrImageSize, OcrPipeline, OcrPipelineBuilder, OcrPipelineModelIds, OcrPipelineModelSettings,
+    OcrPipelineOptions, OcrPipelineResult, OcrTextLine,
 };
 pub use runtime::OrtSessionOptions;
 pub use text_detection::{
-    DetectedTextRegion, DetectionSizeLimit, Point, TextDetectionResult, TextDetector,
-    TextDetectorOptions,
+    DetectedTextRegion, DetectionSizeLimit, Point, TextDetectionParameters, TextDetectionResult,
+    TextDetector, TextDetectorOptions,
 };
 pub use text_recognition::{TextRecognitionResult, TextRecognizer, TextRecognizerOptions};
 pub use textline_orientation::{

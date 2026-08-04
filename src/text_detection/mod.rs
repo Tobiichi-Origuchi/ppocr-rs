@@ -21,11 +21,22 @@ pub(crate) fn minimum_area_rectangle_points(points: &[Point]) -> Option<[Point; 
 }
 
 /// How the detector constrains an input image before rounding to multiples of 32.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum DetectionSizeLimit {
     Max,
     Min,
     ResizeLong,
+}
+
+/// Effective PaddleX-compatible detector parameters used by a loaded model.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TextDetectionParameters {
+    pub limit_side_len: usize,
+    pub limit_type: DetectionSizeLimit,
+    pub max_side_limit: usize,
+    pub threshold: f32,
+    pub box_threshold: f32,
+    pub unclip_ratio: f32,
 }
 
 /// Runtime and PaddleX-compatible detector overrides.
@@ -186,6 +197,17 @@ impl TextDetector {
 
     pub fn model_id(&self) -> &str {
         &self.model_id
+    }
+
+    pub fn parameters(&self) -> TextDetectionParameters {
+        TextDetectionParameters {
+            limit_side_len: self.limit_side_len,
+            limit_type: self.limit_type,
+            max_side_limit: self.max_side_limit,
+            threshold: self.postprocess.threshold,
+            box_threshold: self.postprocess.box_threshold,
+            unclip_ratio: self.postprocess.unclip_ratio,
+        }
     }
 
     pub fn detect(&mut self, image: &RgbImage) -> Result<TextDetectionResult> {

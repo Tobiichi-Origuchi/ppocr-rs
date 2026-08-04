@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 
 use image::RgbImage;
+use serde::{Deserialize, Serialize};
 
 use crate::document_orientation::{
     DocumentOrientationClassifier, DocumentOrientationClassifierOptions, DocumentOrientationResult,
@@ -10,7 +11,9 @@ use crate::document_orientation::{
 use crate::document_rectification::{DocumentRectifier, DocumentRectifierOptions};
 use crate::image_geometry::{crop_text_region, rotate_image, sort_text_regions};
 use crate::models::{ModelDownloadError, ModelDownloader, ModelKind, manifest};
-use crate::text_detection::{DetectedTextRegion, TextDetector, TextDetectorOptions};
+use crate::text_detection::{
+    DetectedTextRegion, Point, TextDetectionParameters, TextDetector, TextDetectorOptions,
+};
 use crate::text_recognition::{TextRecognitionResult, TextRecognizer, TextRecognizerOptions};
 use crate::textline_orientation::{
     TextlineOrientationClassifier, TextlineOrientationClassifierOptions, TextlineOrientationResult,
@@ -24,12 +27,14 @@ pub const DEFAULT_TEXT_DETECTION_MODEL: &str = "PP-OCRv6_medium_det";
 pub const DEFAULT_TEXT_RECOGNITION_MODEL: &str = "PP-OCRv6_medium_rec";
 
 /// Runtime composition settings independent of the selected model artifacts.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct OcrPipelineOptions {
     /// Maximum number of crops passed to one text-line orientation call.
     pub textline_orientation_batch_size: usize,
     /// Maximum number of aspect-ratio-sorted crops passed to one recognition call.
     pub text_recognition_batch_size: usize,
+    /// Keep recognized lines whose mean CTC confidence is at least this value.
+    pub text_recognition_score_threshold: f32,
 }
 
 impl Default for OcrPipelineOptions {
@@ -37,26 +42,78 @@ impl Default for OcrPipelineOptions {
         Self {
             textline_orientation_batch_size: 6,
             text_recognition_batch_size: 6,
+            text_recognition_score_threshold: 0.0,
         }
     }
 }
 
-/// Unfiltered result for one detected text region in reading order.
-#[derive(Debug, Clone)]
-pub struct OcrPipelineRegion {
-    pub detection: DetectedTextRegion,
-    pub textline_orientation: Option<TextlineOrientationResult>,
-    pub recognition: TextRecognitionResult,
+/// Width and height metadata that can be serialized without image pixels.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OcrImageSize {
+    pub width: u32,
+    pub height: u32,
 }
 
-/// One raw pipeline result before result-score filtering and metadata expansion.
+impl From<&RgbImage> for OcrImageSize {
+    fn from(image: &RgbImage) -> Self {
+        Self {
+            width: image.width(),
+            height: image.height(),
+        }
+    }
+}
+
+/// Enabled/disabled state of every optional pipeline stage.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OcrPipelineModelSettings {
+    pub use_document_orientation: bool,
+    pub use_document_rectification: bool,
+    pub use_textline_orientation: bool,
+}
+
+/// Actual manifest IDs backing all required and enabled pipeline stages.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OcrPipelineModelIds {
+    pub document_orientation: Option<String>,
+    pub document_rectification: Option<String>,
+    pub text_detection: String,
+    pub textline_orientation: Option<String>,
+    pub text_recognition: String,
+}
+
+/// One score-filtered recognized line in detector reading order.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OcrTextLine {
+    /// Index into [`OcrPipelineResult::detections`] and
+    /// [`OcrPipelineResult::textline_orientations`].
+    pub detection_index: usize,
+    pub polygon: [Point; 4],
+    /// `[left, top, right, bottom]` enclosing `polygon`.
+    pub bounding_box: [f32; 4],
+    pub detection_score: f32,
+    pub textline_orientation: Option<TextlineOrientationResult>,
+    pub text: String,
+    pub recognition_score: f32,
+}
+
+/// Aggregate PaddleOCR output for one input image.
 #[derive(Debug, Clone)]
 pub struct OcrPipelineResult {
+    pub input_size: OcrImageSize,
+    pub processed_size: OcrImageSize,
     /// Image after enabled document orientation and rectification stages.
     pub processed_image: RgbImage,
+    pub model_settings: OcrPipelineModelSettings,
+    pub model_ids: OcrPipelineModelIds,
+    pub text_detection_parameters: TextDetectionParameters,
+    pub text_recognition_score_threshold: f32,
     pub document_orientation: Option<DocumentOrientationResult>,
-    /// Regions are restored to detector reading order after recognition batching.
-    pub regions: Vec<OcrPipelineRegion>,
+    /// Every sorted, geometrically valid detection, regardless of recognition score.
+    pub detections: Vec<DetectedTextRegion>,
+    /// One entry per detection; `None` when the optional classifier is disabled.
+    pub textline_orientations: Vec<Option<TextlineOrientationResult>>,
+    /// Score-filtered lines, restored to detector reading order after batching.
+    pub text_lines: Vec<OcrTextLine>,
 }
 
 /// Lazily constructs only the explicitly enabled OCR modules.
@@ -179,6 +236,11 @@ impl<'a> OcrPipelineBuilder<'a> {
         self
     }
 
+    pub fn text_recognition_score_threshold(mut self, threshold: f32) -> Self {
+        self.pipeline_options.text_recognition_score_threshold = threshold;
+        self
+    }
+
     /// Validate every selection before downloading, then initialize only enabled modules.
     pub fn build(self) -> Result<OcrPipeline> {
         self.validate()?;
@@ -260,35 +322,18 @@ pub struct OcrPipeline {
     document_rectifier: Option<DocumentRectifier>,
     textline_orientation: Option<TextlineOrientationClassifier>,
     options: OcrPipelineOptions,
+    model_settings: OcrPipelineModelSettings,
+    model_ids: OcrPipelineModelIds,
+    text_detection_parameters: TextDetectionParameters,
 }
 
 impl std::fmt::Debug for OcrPipeline {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("OcrPipeline")
-            .field("text_detection_model", &self.detector.model_id())
-            .field("text_recognition_model", &self.recognizer.model_id())
-            .field(
-                "document_orientation_model",
-                &self
-                    .document_orientation
-                    .as_ref()
-                    .map(DocumentOrientationClassifier::model_id),
-            )
-            .field(
-                "document_rectification_model",
-                &self
-                    .document_rectifier
-                    .as_ref()
-                    .map(DocumentRectifier::model_id),
-            )
-            .field(
-                "textline_orientation_model",
-                &self
-                    .textline_orientation
-                    .as_ref()
-                    .map(TextlineOrientationClassifier::model_id),
-            )
+            .field("model_settings", &self.model_settings)
+            .field("model_ids", &self.model_ids)
+            .field("text_detection_parameters", &self.text_detection_parameters)
             .field("options", &self.options)
             .finish_non_exhaustive()
     }
@@ -309,6 +354,28 @@ impl OcrPipeline {
         options: OcrPipelineOptions,
     ) -> Result<Self> {
         validate_options(options)?;
+        let model_settings = OcrPipelineModelSettings {
+            use_document_orientation: document_orientation.is_some(),
+            use_document_rectification: document_rectifier.is_some(),
+            use_textline_orientation: textline_orientation.is_some(),
+        };
+        let model_ids = OcrPipelineModelIds {
+            document_orientation: document_orientation
+                .as_ref()
+                .map(DocumentOrientationClassifier::model_id)
+                .map(str::to_owned),
+            document_rectification: document_rectifier
+                .as_ref()
+                .map(DocumentRectifier::model_id)
+                .map(str::to_owned),
+            text_detection: detector.model_id().to_owned(),
+            textline_orientation: textline_orientation
+                .as_ref()
+                .map(TextlineOrientationClassifier::model_id)
+                .map(str::to_owned),
+            text_recognition: recognizer.model_id().to_owned(),
+        };
+        let text_detection_parameters = detector.parameters();
         Ok(Self {
             detector,
             recognizer,
@@ -316,7 +383,22 @@ impl OcrPipeline {
             document_rectifier,
             textline_orientation,
             options,
+            model_settings,
+            model_ids,
+            text_detection_parameters,
         })
+    }
+
+    pub fn model_settings(&self) -> OcrPipelineModelSettings {
+        self.model_settings
+    }
+
+    pub fn model_ids(&self) -> &OcrPipelineModelIds {
+        &self.model_ids
+    }
+
+    pub fn text_detection_parameters(&self) -> TextDetectionParameters {
+        self.text_detection_parameters
     }
 
     /// Run all enabled modules in PaddleX order for one decoded RGB image.
@@ -325,6 +407,7 @@ impl OcrPipeline {
             return Err(OcrError::EmptyImage);
         }
 
+        let input_size = OcrImageSize::from(image);
         let document_orientation = self
             .document_orientation
             .as_mut()
@@ -355,23 +438,25 @@ impl OcrPipeline {
 
         let textline_orientations = self.classify_and_rotate_textlines(&mut crops)?;
         let recognitions = self.recognize_in_aspect_ratio_order(&crops)?;
-        let regions = regions
-            .into_iter()
-            .zip(textline_orientations)
-            .zip(recognitions)
-            .map(
-                |((detection, textline_orientation), recognition)| OcrPipelineRegion {
-                    detection,
-                    textline_orientation,
-                    recognition,
-                },
-            )
-            .collect();
+        let (detections, textline_orientations, text_lines) = aggregate_text_lines(
+            regions,
+            textline_orientations,
+            recognitions,
+            self.options.text_recognition_score_threshold,
+        );
 
         Ok(OcrPipelineResult {
+            input_size,
+            processed_size: OcrImageSize::from(&processed_image),
             processed_image,
+            model_settings: self.model_settings,
+            model_ids: self.model_ids.clone(),
+            text_detection_parameters: self.text_detection_parameters,
+            text_recognition_score_threshold: self.options.text_recognition_score_threshold,
             document_orientation,
-            regions,
+            detections,
+            textline_orientations,
+            text_lines,
         })
     }
 
@@ -428,6 +513,54 @@ fn aspect_ratio(image: &RgbImage) -> f64 {
     f64::from(image.width()) / f64::from(image.height())
 }
 
+fn aggregate_text_lines(
+    detections: Vec<DetectedTextRegion>,
+    textline_orientations: Vec<Option<TextlineOrientationResult>>,
+    recognitions: Vec<TextRecognitionResult>,
+    score_threshold: f32,
+) -> (
+    Vec<DetectedTextRegion>,
+    Vec<Option<TextlineOrientationResult>>,
+    Vec<OcrTextLine>,
+) {
+    assert_eq!(detections.len(), textline_orientations.len());
+    assert_eq!(detections.len(), recognitions.len());
+    let text_lines = detections
+        .iter()
+        .zip(&textline_orientations)
+        .zip(recognitions)
+        .enumerate()
+        .filter_map(
+            |(detection_index, ((detection, textline_orientation), recognition))| {
+                (recognition.score >= score_threshold).then(|| OcrTextLine {
+                    detection_index,
+                    polygon: detection.points,
+                    bounding_box: enclosing_box(&detection.points),
+                    detection_score: detection.score,
+                    textline_orientation: textline_orientation.clone(),
+                    text: recognition.text,
+                    recognition_score: recognition.score,
+                })
+            },
+        )
+        .collect();
+    (detections, textline_orientations, text_lines)
+}
+
+fn enclosing_box(points: &[Point; 4]) -> [f32; 4] {
+    let mut left = f32::INFINITY;
+    let mut top = f32::INFINITY;
+    let mut right = f32::NEG_INFINITY;
+    let mut bottom = f32::NEG_INFINITY;
+    for point in points {
+        left = left.min(point.x);
+        top = top.min(point.y);
+        right = right.max(point.x);
+        bottom = bottom.max(point.y);
+    }
+    [left, top, right, bottom]
+}
+
 fn validate_options(options: OcrPipelineOptions) -> Result<()> {
     if options.textline_orientation_batch_size == 0 {
         return Err(OcrError::InvalidPipelineConfig {
@@ -437,6 +570,11 @@ fn validate_options(options: OcrPipelineOptions) -> Result<()> {
     if options.text_recognition_batch_size == 0 {
         return Err(OcrError::InvalidPipelineConfig {
             reason: "text_recognition_batch_size must be greater than zero".to_owned(),
+        });
+    }
+    if !options.text_recognition_score_threshold.is_finite() {
+        return Err(OcrError::InvalidPipelineConfig {
+            reason: "text_recognition_score_threshold must be finite".to_owned(),
         });
     }
     Ok(())
@@ -536,9 +674,119 @@ mod tests {
             .pipeline_options(OcrPipelineOptions {
                 textline_orientation_batch_size: 0,
                 text_recognition_batch_size: 6,
+                text_recognition_score_threshold: 0.0,
             })
             .validate()
             .unwrap_err();
         assert!(matches!(error, OcrError::InvalidPipelineConfig { .. }));
+    }
+
+    #[test]
+    fn filters_recognition_scores_without_losing_detection_associations() {
+        fn detection(x: f32, score: f32) -> DetectedTextRegion {
+            DetectedTextRegion {
+                points: [
+                    Point { x, y: 3.0 },
+                    Point {
+                        x: x + 10.0,
+                        y: 2.0,
+                    },
+                    Point {
+                        x: x + 11.0,
+                        y: 7.0,
+                    },
+                    Point { x: x + 1.0, y: 8.0 },
+                ],
+                score,
+            }
+        }
+
+        let detections = vec![
+            detection(1.0, 0.91),
+            detection(20.0, 0.82),
+            detection(40.0, 0.73),
+        ];
+        let orientations = vec![
+            Some(TextlineOrientationResult {
+                class_id: 0,
+                angle: 0,
+                label: "0_degree".to_owned(),
+                score: 0.99,
+            }),
+            Some(TextlineOrientationResult {
+                class_id: 1,
+                angle: 180,
+                label: "180_degree".to_owned(),
+                score: 0.98,
+            }),
+            None,
+        ];
+        let recognitions = vec![
+            TextRecognitionResult {
+                text: "first".to_owned(),
+                score: 0.9,
+            },
+            TextRecognitionResult {
+                text: "filtered".to_owned(),
+                score: 0.79,
+            },
+            TextRecognitionResult {
+                text: "threshold".to_owned(),
+                score: 0.8,
+            },
+        ];
+
+        let (all_detections, all_orientations, lines) =
+            aggregate_text_lines(detections, orientations, recognitions, 0.8);
+        assert_eq!(all_detections.len(), 3);
+        assert_eq!(all_orientations.len(), 3);
+        assert_eq!(
+            lines
+                .iter()
+                .map(|line| (line.detection_index, line.text.as_str()))
+                .collect::<Vec<_>>(),
+            vec![(0, "first"), (2, "threshold")]
+        );
+        assert_eq!(lines[0].bounding_box, [1.0, 2.0, 12.0, 8.0]);
+        assert_eq!(lines[0].detection_score, 0.91);
+        assert_eq!(lines[0].textline_orientation.as_ref().unwrap().angle, 0);
+        assert!(lines[1].textline_orientation.is_none());
+    }
+
+    #[test]
+    fn rejects_non_finite_score_threshold() {
+        let downloader = downloader();
+        let error = OcrPipelineBuilder::new(&downloader)
+            .text_recognition_score_threshold(f32::NAN)
+            .validate()
+            .unwrap_err();
+        assert!(matches!(error, OcrError::InvalidPipelineConfig { .. }));
+    }
+
+    #[test]
+    fn serializes_result_metadata_types() {
+        let settings = OcrPipelineModelSettings {
+            use_document_orientation: true,
+            use_document_rectification: false,
+            use_textline_orientation: true,
+        };
+        let model_ids = OcrPipelineModelIds {
+            document_orientation: Some(DEFAULT_DOCUMENT_ORIENTATION_MODEL.to_owned()),
+            document_rectification: None,
+            text_detection: DEFAULT_TEXT_DETECTION_MODEL.to_owned(),
+            textline_orientation: Some(DEFAULT_TEXTLINE_ORIENTATION_MODEL.to_owned()),
+            text_recognition: DEFAULT_TEXT_RECOGNITION_MODEL.to_owned(),
+        };
+        let value = serde_json::json!({
+            "size": OcrImageSize { width: 720, height: 1150 },
+            "settings": settings,
+            "model_ids": model_ids,
+        });
+        assert_eq!(value["size"]["width"], 720);
+        assert_eq!(value["settings"]["use_document_rectification"], false);
+        assert_eq!(
+            value["model_ids"]["text_recognition"],
+            DEFAULT_TEXT_RECOGNITION_MODEL
+        );
     }
 }
