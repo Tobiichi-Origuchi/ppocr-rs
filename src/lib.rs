@@ -8,6 +8,7 @@ mod runtime;
 
 pub mod document_orientation;
 pub mod document_rectification;
+pub mod image_geometry;
 pub mod models;
 pub mod text_detection;
 pub mod text_recognition;

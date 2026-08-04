@@ -31,6 +31,8 @@ pub enum OcrError {
     InvalidConfig { model_id: String, reason: String },
     #[error("invalid image: width and height must both be non-zero")]
     EmptyImage,
+    #[error("invalid image geometry: {reason}")]
+    InvalidGeometry { reason: String },
     #[error("invalid inference output for model {model_id:?}: {reason}")]
     InvalidOutput { model_id: String, reason: String },
     #[error(transparent)]

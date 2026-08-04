@@ -16,6 +16,10 @@ use crate::{OcrError, Result};
 pub use geometry::Point;
 use postprocess::DbOptions;
 
+pub(crate) fn minimum_area_rectangle_points(points: &[Point]) -> Option<[Point; 4]> {
+    geometry::minimum_area_rect(points).map(geometry::RotatedRect::ordered_points)
+}
+
 /// How the detector constrains an input image before rounding to multiples of 32.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum DetectionSizeLimit {
