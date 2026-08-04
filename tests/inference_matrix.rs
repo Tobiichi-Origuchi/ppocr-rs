@@ -357,3 +357,110 @@ fn all_optional_pipeline_configurations_run() {
     }
     assert_eq!(configuration_count, 12);
 }
+
+#[test]
+#[ignore = "downloads and executes the full 7 x 34 x 12 pipeline matrix"]
+fn all_complete_pipeline_combinations_run() {
+    let downloader = downloader();
+    let (document, _) = fixture(
+        "PPOCR_MATRIX_DOCUMENT",
+        RgbImage::from_pixel(320, 192, Rgb([255, 255, 255])),
+    );
+    let detector_ids: Vec<_> = manifest()
+        .models
+        .iter()
+        .filter(|model| model.kind == ModelKind::TextDetection)
+        .map(|model| model.id.clone())
+        .collect();
+    let recognizer_ids: Vec<_> = manifest()
+        .models
+        .iter()
+        .filter(|model| model.kind == ModelKind::TextRecognition)
+        .map(|model| model.id.clone())
+        .collect();
+    let textline_models = [
+        None,
+        Some("PP-LCNet_x0_25_textline_ori"),
+        Some("PP-LCNet_x1_0_textline_ori"),
+    ];
+
+    assert_eq!(detector_ids.len(), 7);
+    assert_eq!(recognizer_ids.len(), 34);
+    let expected_count = detector_ids.len() * recognizer_ids.len() * 2 * 2 * 3;
+    let mut combination_count = 0;
+
+    for detector_id in &detector_ids {
+        for recognizer_id in &recognizer_ids {
+            for use_document_orientation in [false, true] {
+                for use_document_rectification in [false, true] {
+                    for textline_model in textline_models {
+                        combination_count += 1;
+                        let mut builder = OcrPipeline::builder(&downloader)
+                            .text_detection_model(detector_id.clone())
+                            .text_recognition_model(recognizer_id.clone());
+                        if !use_document_orientation {
+                            builder = builder.disable_document_orientation();
+                        }
+                        if !use_document_rectification {
+                            builder = builder.disable_document_rectification();
+                        }
+                        builder = match textline_model {
+                            Some(model_id) => builder.textline_orientation_model(model_id),
+                            None => builder.disable_textline_orientation(),
+                        };
+
+                        let mut pipeline = builder.build().unwrap_or_else(|error| {
+                            panic!(
+                                "failed to build combination {combination_count}/{expected_count} ({detector_id}/{recognizer_id}, doc_ori={use_document_orientation}, uvdoc={use_document_rectification}, textline={textline_model:?}): {error}"
+                            )
+                        });
+                        let result = pipeline.predict(&document).unwrap_or_else(|error| {
+                            panic!(
+                                "failed to run combination {combination_count}/{expected_count} ({detector_id}/{recognizer_id}, doc_ori={use_document_orientation}, uvdoc={use_document_rectification}, textline={textline_model:?}): {error}"
+                            )
+                        });
+
+                        assert_eq!(result.model_ids.text_detection, *detector_id);
+                        assert_eq!(result.model_ids.text_recognition, *recognizer_id);
+                        assert_eq!(
+                            result.model_settings.use_document_orientation,
+                            use_document_orientation
+                        );
+                        assert_eq!(
+                            result.model_settings.use_document_rectification,
+                            use_document_rectification
+                        );
+                        assert_eq!(
+                            result.model_settings.use_textline_orientation,
+                            textline_model.is_some()
+                        );
+                        assert_eq!(
+                            result.model_ids.textline_orientation.as_deref(),
+                            textline_model
+                        );
+                        assert_eq!(result.detections.len(), result.textline_orientations.len());
+                        assert!(result.processed_size.width > 0);
+                        assert!(result.processed_size.height > 0);
+                        assert!(result.detections.iter().all(|detection| {
+                            detection.score.is_finite()
+                                && detection
+                                    .points
+                                    .iter()
+                                    .all(|point| point.x.is_finite() && point.y.is_finite())
+                        }));
+                        assert!(result.text_lines.iter().all(|line| {
+                            line.detection_index < result.detections.len()
+                                && line.detection_score.is_finite()
+                                && line.recognition_score.is_finite()
+                        }));
+                    }
+                }
+            }
+            eprintln!(
+                "completed {combination_count}/{expected_count}: {detector_id}/{recognizer_id}"
+            );
+        }
+    }
+    assert_eq!(combination_count, expected_count);
+    assert_eq!(combination_count, 2_856);
+}
