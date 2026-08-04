@@ -1,6 +1,12 @@
 //! Composition of the five PaddleOCR general OCR module roles.
 
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering as AtomicOrdering},
+    },
+};
 
 use image::RgbImage;
 use serde::{Deserialize, Serialize};
@@ -14,7 +20,9 @@ use crate::models::{ModelDownloadError, ModelDownloader, ModelKind, manifest};
 use crate::text_detection::{
     DetectedTextRegion, Point, TextDetectionParameters, TextDetector, TextDetectorOptions,
 };
-use crate::text_recognition::{TextRecognitionResult, TextRecognizer, TextRecognizerOptions};
+use crate::text_recognition::{
+    CtcWordAlignment, CtcWordKind, TextRecognitionResult, TextRecognizer, TextRecognizerOptions,
+};
 use crate::textline_orientation::{
     TextlineOrientationClassifier, TextlineOrientationClassifierOptions, TextlineOrientationResult,
 };
@@ -35,6 +43,8 @@ pub struct OcrPipelineOptions {
     pub text_recognition_batch_size: usize,
     /// Keep recognized lines whose mean CTC confidence is at least this value.
     pub text_recognition_score_threshold: f32,
+    /// Return PaddleX-compatible word boxes derived from CTC timestep alignment.
+    pub return_word_boxes: bool,
 }
 
 impl Default for OcrPipelineOptions {
@@ -43,6 +53,7 @@ impl Default for OcrPipelineOptions {
             textline_orientation_batch_size: 6,
             text_recognition_batch_size: 6,
             text_recognition_score_threshold: 0.0,
+            return_word_boxes: false,
         }
     }
 }
@@ -94,6 +105,17 @@ pub struct OcrTextLine {
     pub textline_orientation: Option<TextlineOrientationResult>,
     pub text: String,
     pub recognition_score: f32,
+    /// Word/character boxes in processed-document coordinates when requested.
+    pub words: Option<Vec<OcrWord>>,
+}
+
+/// One word or CJK character inferred from CTC alignment inside a text line.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OcrWord {
+    pub text: String,
+    pub polygon: [Point; 4],
+    /// `[left, top, right, bottom]` enclosing `polygon`.
+    pub bounding_box: [f32; 4],
 }
 
 /// Aggregate PaddleOCR output for one input image.
@@ -107,6 +129,7 @@ pub struct OcrPipelineResult {
     pub model_ids: OcrPipelineModelIds,
     pub text_detection_parameters: TextDetectionParameters,
     pub text_recognition_score_threshold: f32,
+    pub return_word_boxes: bool,
     pub document_orientation: Option<DocumentOrientationResult>,
     /// Every sorted, geometrically valid detection, regardless of recognition score.
     pub detections: Vec<DetectedTextRegion>,
@@ -117,7 +140,7 @@ pub struct OcrPipelineResult {
 }
 
 /// Lazily constructs only the explicitly enabled OCR modules.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OcrPipelineBuilder<'a> {
     downloader: &'a ModelDownloader,
     document_orientation_model: Option<String>,
@@ -231,6 +254,19 @@ impl<'a> OcrPipelineBuilder<'a> {
         self
     }
 
+    /// Apply one ONNX Runtime configuration to every enabled pipeline module.
+    ///
+    /// This is the convenient path for selecting one execution-provider
+    /// priority list and one threading policy for the complete pipeline.
+    pub fn session_options(mut self, options: crate::OrtSessionOptions) -> Self {
+        self.document_orientation_options.session = options.clone();
+        self.document_rectification_options.session = options.clone();
+        self.textline_orientation_options.session = options.clone();
+        self.text_detection_options.session = options.clone();
+        self.text_recognition_options.session = options;
+        self
+    }
+
     pub fn pipeline_options(mut self, options: OcrPipelineOptions) -> Self {
         self.pipeline_options = options;
         self
@@ -282,10 +318,12 @@ impl<'a> OcrPipelineBuilder<'a> {
                 )
             })
             .transpose()?;
+        let mut text_recognition_options = self.text_recognition_options;
+        text_recognition_options.return_word_alignment |= self.pipeline_options.return_word_boxes;
         let recognizer = TextRecognizer::from_model(
             &self.text_recognition_model,
             self.downloader,
-            self.text_recognition_options,
+            text_recognition_options,
         )?;
         OcrPipeline::from_components(
             detector,
@@ -295,6 +333,26 @@ impl<'a> OcrPipelineBuilder<'a> {
             textline_orientation,
             self.pipeline_options,
         )
+    }
+
+    /// Build independent pipelines for concurrent callers.
+    ///
+    /// Each worker owns its own five-or-fewer ORT sessions. On CPU, cap
+    /// `intra_threads` when using several workers to avoid oversubscription. On
+    /// a GPU, a single pipeline with larger OCR batches is normally preferable
+    /// because every additional worker duplicates session and device memory.
+    pub fn build_pool(self, worker_count: usize) -> Result<OcrPipelinePool> {
+        if worker_count == 0 {
+            return Err(OcrError::InvalidPipelineConfig {
+                reason: "worker_count must be greater than zero".to_owned(),
+            });
+        }
+        self.validate()?;
+        let mut pipelines = Vec::with_capacity(worker_count);
+        for _ in 0..worker_count {
+            pipelines.push(self.clone().build()?);
+        }
+        OcrPipelinePool::from_pipelines(pipelines)
     }
 
     fn validate(&self) -> Result<()> {
@@ -314,7 +372,10 @@ impl<'a> OcrPipelineBuilder<'a> {
     }
 }
 
-/// CPU ONNX Runtime implementation of the PaddleOCR general OCR pipeline.
+/// ONNX Runtime implementation of the PaddleOCR general OCR pipeline.
+///
+/// CPU is the default. Configure another execution provider through the
+/// module options or [`OcrPipelineBuilder::session_options`].
 pub struct OcrPipeline {
     detector: TextDetector,
     recognizer: TextRecognizer,
@@ -325,6 +386,112 @@ pub struct OcrPipeline {
     model_settings: OcrPipelineModelSettings,
     model_ids: OcrPipelineModelIds,
     text_detection_parameters: TextDetectionParameters,
+}
+
+/// A set of independent pipelines for safe request-level concurrency.
+///
+/// `ort::Session::run` requires exclusive access because some provider
+/// allocators and statistics are not thread-safe. This pool never runs the
+/// same session concurrently: each worker is protected by its own mutex, while
+/// separate workers may execute in parallel.
+pub struct OcrPipelinePool {
+    workers: Box<[Mutex<OcrPipeline>]>,
+    next_worker: AtomicUsize,
+}
+
+impl std::fmt::Debug for OcrPipelinePool {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("OcrPipelinePool")
+            .field("worker_count", &self.workers.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl OcrPipelinePool {
+    /// Construct a pool from already initialized pipelines.
+    ///
+    /// This also permits assigning different device IDs to different workers.
+    pub fn from_pipelines(pipelines: Vec<OcrPipeline>) -> Result<Self> {
+        if pipelines.is_empty() {
+            return Err(OcrError::InvalidPipelineConfig {
+                reason: "an OCR pipeline pool requires at least one worker".to_owned(),
+            });
+        }
+        Ok(Self {
+            workers: pipelines
+                .into_iter()
+                .map(Mutex::new)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+            next_worker: AtomicUsize::new(0),
+        })
+    }
+
+    pub fn worker_count(&self) -> usize {
+        self.workers.len()
+    }
+
+    /// Run one image on a round-robin worker.
+    pub fn predict(&self, image: &RgbImage) -> Result<OcrPipelineResult> {
+        let index = self.next_worker.fetch_add(1, AtomicOrdering::Relaxed) % self.workers.len();
+        let mut worker = self.workers[index]
+            .lock()
+            .map_err(|_| OcrError::Concurrency {
+                reason: format!("pipeline worker {index} is poisoned"),
+            })?;
+        worker.predict(image)
+    }
+
+    /// Distribute images over all workers and restore input order.
+    pub fn predict_batch(&self, images: &[RgbImage]) -> Result<Vec<OcrPipelineResult>> {
+        if images.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let next_image = AtomicUsize::new(0);
+        let results = Mutex::new(
+            std::iter::repeat_with(|| None)
+                .take(images.len())
+                .collect::<Vec<Option<Result<OcrPipelineResult>>>>(),
+        );
+        std::thread::scope(|scope| {
+            for worker in &self.workers {
+                let next_image = &next_image;
+                let results = &results;
+                scope.spawn(move || {
+                    let Ok(mut worker) = worker.lock() else {
+                        return;
+                    };
+                    loop {
+                        let index = next_image.fetch_add(1, AtomicOrdering::Relaxed);
+                        let Some(image) = images.get(index) else {
+                            break;
+                        };
+                        let result = worker.predict(image);
+                        results
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner)[index] =
+                            Some(result);
+                    }
+                });
+            }
+        });
+
+        results
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .into_iter()
+            .enumerate()
+            .map(|(index, result)| {
+                result.unwrap_or_else(|| {
+                    Err(OcrError::Concurrency {
+                        reason: format!("no healthy pipeline worker processed image {index}"),
+                    })
+                })
+            })
+            .collect()
+    }
 }
 
 impl std::fmt::Debug for OcrPipeline {
@@ -354,6 +521,12 @@ impl OcrPipeline {
         options: OcrPipelineOptions,
     ) -> Result<Self> {
         validate_options(options)?;
+        if options.return_word_boxes && !recognizer.returns_word_alignment() {
+            return Err(OcrError::InvalidPipelineConfig {
+                reason: "return_word_boxes requires a recognizer built with return_word_alignment"
+                    .to_owned(),
+            });
+        }
         let model_settings = OcrPipelineModelSettings {
             use_document_orientation: document_orientation.is_some(),
             use_document_rectification: document_rectifier.is_some(),
@@ -443,6 +616,7 @@ impl OcrPipeline {
             textline_orientations,
             recognitions,
             self.options.text_recognition_score_threshold,
+            self.options.return_word_boxes,
         );
 
         Ok(OcrPipelineResult {
@@ -453,6 +627,7 @@ impl OcrPipeline {
             model_ids: self.model_ids.clone(),
             text_detection_parameters: self.text_detection_parameters,
             text_recognition_score_threshold: self.options.text_recognition_score_threshold,
+            return_word_boxes: self.options.return_word_boxes,
             document_orientation,
             detections,
             textline_orientations,
@@ -518,6 +693,7 @@ fn aggregate_text_lines(
     textline_orientations: Vec<Option<TextlineOrientationResult>>,
     recognitions: Vec<TextRecognitionResult>,
     score_threshold: f32,
+    return_word_boxes: bool,
 ) -> (
     Vec<DetectedTextRegion>,
     Vec<Option<TextlineOrientationResult>>,
@@ -532,19 +708,186 @@ fn aggregate_text_lines(
         .enumerate()
         .filter_map(
             |(detection_index, ((detection, textline_orientation), recognition))| {
-                (recognition.score >= score_threshold).then(|| OcrTextLine {
-                    detection_index,
-                    polygon: detection.points,
-                    bounding_box: enclosing_box(&detection.points),
-                    detection_score: detection.score,
-                    textline_orientation: textline_orientation.clone(),
-                    text: recognition.text,
-                    recognition_score: recognition.score,
+                (recognition.score >= score_threshold).then(|| {
+                    let words = return_word_boxes.then(|| {
+                        word_boxes(
+                            &recognition.text,
+                            &detection.points,
+                            recognition
+                                .word_alignment
+                                .as_ref()
+                                .expect("word alignment is enabled with word boxes"),
+                        )
+                    });
+                    OcrTextLine {
+                        detection_index,
+                        polygon: detection.points,
+                        bounding_box: enclosing_box(&detection.points),
+                        detection_score: detection.score,
+                        textline_orientation: textline_orientation.clone(),
+                        text: recognition.text,
+                        recognition_score: recognition.score,
+                        words,
+                    }
                 })
             },
         )
         .collect();
     (detections, textline_orientations, text_lines)
+}
+
+fn word_boxes(
+    recognized_text: &str,
+    line: &[Point; 4],
+    alignment: &CtcWordAlignment,
+) -> Vec<OcrWord> {
+    if alignment.column_count <= 0.0 {
+        return Vec::new();
+    }
+    let width = line
+        .iter()
+        .map(|point| point.x)
+        .fold(f32::NEG_INFINITY, f32::max)
+        - line
+            .iter()
+            .map(|point| point.x)
+            .fold(f32::INFINITY, f32::min);
+    let height = line
+        .iter()
+        .map(|point| point.y)
+        .fold(f32::NEG_INFINITY, f32::max)
+        - line
+            .iter()
+            .map(|point| point.y)
+            .fold(f32::INFINITY, f32::min);
+    let vertical = width == 0.0 || height / width > 1.5;
+    let (axis_start, axis_end, cross_start, cross_end) = if vertical {
+        (line[0].y, line[2].y, line[0].x, line[1].x)
+    } else {
+        (line[0].x, line[1].x, line[0].y, line[2].y)
+    };
+    let axis_size = axis_end - axis_start;
+    let cell_size = axis_size / alignment.column_count;
+    let mut words = Vec::new();
+    let mut cjk = Vec::new();
+    let mut cjk_sizes = Vec::new();
+
+    for group in &alignment.groups {
+        if group.columns.is_empty() {
+            continue;
+        }
+        if group.kind == CtcWordKind::Cjk {
+            if group.columns.len() != 1 {
+                let sequence_size = (group.columns[group.columns.len() - 1] - group.columns[0] + 1)
+                    as f32
+                    * cell_size;
+                cjk_sizes.push(sequence_size / (group.columns.len() - 1) as f32);
+            }
+            cjk.extend(group.text.chars().zip(group.columns.iter().copied()));
+            continue;
+        }
+
+        let start = axis_start + (group.columns[0] as f32 * cell_size) as i32 as f32;
+        let end = axis_start
+            + ((group.columns[group.columns.len() - 1] + 1) as f32 * cell_size) as i32 as f32;
+        words.push(make_word(
+            group.text.clone(),
+            start,
+            end,
+            cross_start,
+            cross_end,
+            vertical,
+        ));
+    }
+
+    if !cjk.is_empty() {
+        let average_size = if cjk_sizes.is_empty() {
+            axis_size / recognized_text.chars().count().max(1) as f32
+        } else {
+            cjk_sizes.iter().sum::<f32>() / cjk_sizes.len() as f32
+        };
+        for (character, column) in cjk {
+            let center = (column as f32 + 0.5) * cell_size;
+            let start = axis_start + ((center - average_size / 2.0) as i32).max(0) as f32;
+            let end =
+                axis_start + ((center + average_size / 2.0) as i32).min(axis_size as i32) as f32;
+            words.push(make_word(
+                character.to_string(),
+                start,
+                end,
+                cross_start,
+                cross_end,
+                vertical,
+            ));
+        }
+    }
+
+    words.sort_by(|left, right| {
+        word_center(left)
+            .1
+            .partial_cmp(&word_center(right).1)
+            .unwrap_or(Ordering::Equal)
+    });
+    let mut sorted = Vec::with_capacity(words.len());
+    let mut current_line = Vec::new();
+    let mut last_y: Option<f32> = None;
+    for word in words {
+        let y = word_center(&word).1;
+        if last_y.is_some_and(|last| (y - last).abs() >= 12.0) {
+            append_x_sorted(&mut current_line, &mut sorted);
+        }
+        current_line.push(word);
+        last_y = Some(y);
+    }
+    append_x_sorted(&mut current_line, &mut sorted);
+    sorted
+}
+
+fn word_center(word: &OcrWord) -> (f32, f32) {
+    (
+        (word.bounding_box[0] + word.bounding_box[2]) / 2.0,
+        (word.bounding_box[1] + word.bounding_box[3]) / 2.0,
+    )
+}
+
+fn append_x_sorted(line: &mut Vec<OcrWord>, output: &mut Vec<OcrWord>) {
+    line.sort_by(|left, right| {
+        word_center(left)
+            .0
+            .partial_cmp(&word_center(right).0)
+            .unwrap_or(Ordering::Equal)
+    });
+    output.append(line);
+}
+
+fn make_word(
+    text: String,
+    start: f32,
+    end: f32,
+    cross_start: f32,
+    cross_end: f32,
+    vertical: bool,
+) -> OcrWord {
+    let polygon = if vertical {
+        [
+            Point::new(cross_start, start),
+            Point::new(cross_end, start),
+            Point::new(cross_end, end),
+            Point::new(cross_start, end),
+        ]
+    } else {
+        [
+            Point::new(start, cross_start),
+            Point::new(end, cross_start),
+            Point::new(end, cross_end),
+            Point::new(start, cross_end),
+        ]
+    };
+    OcrWord {
+        text,
+        bounding_box: enclosing_box(&polygon),
+        polygon,
+    }
 }
 
 fn enclosing_box(points: &[Point; 4]) -> [f32; 4] {
@@ -649,6 +992,53 @@ mod tests {
     }
 
     #[test]
+    fn pool_rejects_zero_workers_before_download() {
+        let downloader = downloader();
+        let error = OcrPipelineBuilder::new(&downloader)
+            .build_pool(0)
+            .unwrap_err();
+        assert!(matches!(error, OcrError::InvalidPipelineConfig { .. }));
+    }
+
+    #[test]
+    fn runtime_options_apply_to_every_module() {
+        let downloader = downloader();
+        let options = crate::OrtSessionOptions {
+            intra_threads: Some(2),
+            inter_threads: Some(1),
+            ..crate::OrtSessionOptions::default()
+        };
+        let builder = OcrPipelineBuilder::new(&downloader).session_options(options);
+        assert_eq!(
+            builder.document_orientation_options.session.intra_threads,
+            Some(2)
+        );
+        assert_eq!(
+            builder.document_rectification_options.session.intra_threads,
+            Some(2)
+        );
+        assert_eq!(
+            builder.textline_orientation_options.session.intra_threads,
+            Some(2)
+        );
+        assert_eq!(
+            builder.text_detection_options.session.intra_threads,
+            Some(2)
+        );
+        assert_eq!(
+            builder.text_recognition_options.session.intra_threads,
+            Some(2)
+        );
+    }
+
+    #[test]
+    fn pipelines_and_pools_are_send_and_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<OcrPipeline>();
+        assert_send_sync::<OcrPipelinePool>();
+    }
+
+    #[test]
     fn selection_is_validated_without_cache_or_network_access() {
         let downloader = downloader();
         let error = OcrPipelineBuilder::new(&downloader)
@@ -675,6 +1065,7 @@ mod tests {
                 textline_orientation_batch_size: 0,
                 text_recognition_batch_size: 6,
                 text_recognition_score_threshold: 0.0,
+                return_word_boxes: false,
             })
             .validate()
             .unwrap_err();
@@ -725,19 +1116,22 @@ mod tests {
             TextRecognitionResult {
                 text: "first".to_owned(),
                 score: 0.9,
+                ..TextRecognitionResult::default()
             },
             TextRecognitionResult {
                 text: "filtered".to_owned(),
                 score: 0.79,
+                ..TextRecognitionResult::default()
             },
             TextRecognitionResult {
                 text: "threshold".to_owned(),
                 score: 0.8,
+                ..TextRecognitionResult::default()
             },
         ];
 
         let (all_detections, all_orientations, lines) =
-            aggregate_text_lines(detections, orientations, recognitions, 0.8);
+            aggregate_text_lines(detections, orientations, recognitions, 0.8, false);
         assert_eq!(all_detections.len(), 3);
         assert_eq!(all_orientations.len(), 3);
         assert_eq!(
@@ -751,6 +1145,89 @@ mod tests {
         assert_eq!(lines[0].detection_score, 0.91);
         assert_eq!(lines[0].textline_orientation.as_ref().unwrap().angle, 0);
         assert!(lines[1].textline_orientation.is_none());
+    }
+
+    #[test]
+    fn word_boxes_follow_ctc_columns_in_document_coordinates() {
+        let line = [
+            Point::new(0.0, 0.0),
+            Point::new(100.0, 0.0),
+            Point::new(100.0, 20.0),
+            Point::new(0.0, 20.0),
+        ];
+        let alignment = CtcWordAlignment {
+            column_count: 10.0,
+            groups: vec![
+                crate::text_recognition::CtcWordGroup {
+                    text: "中文".to_owned(),
+                    columns: vec![1, 3],
+                    kind: CtcWordKind::Cjk,
+                },
+                crate::text_recognition::CtcWordGroup {
+                    text: "A-1".to_owned(),
+                    columns: vec![5, 6, 7],
+                    kind: CtcWordKind::Alphanumeric,
+                },
+            ],
+        };
+        let words = word_boxes("中文A-1", &line, &alignment);
+        assert_eq!(
+            words
+                .iter()
+                .map(|word| (word.text.as_str(), word.bounding_box))
+                .collect::<Vec<_>>(),
+            vec![
+                ("中", [0.0, 0.0, 30.0, 20.0]),
+                ("文", [20.0, 0.0, 50.0, 20.0]),
+                ("A-1", [50.0, 0.0, 80.0, 20.0]),
+            ]
+        );
+    }
+
+    #[test]
+    fn word_boxes_support_vertical_text_lines() {
+        let line = [
+            Point::new(10.0, 0.0),
+            Point::new(30.0, 0.0),
+            Point::new(30.0, 100.0),
+            Point::new(10.0, 100.0),
+        ];
+        let alignment = CtcWordAlignment {
+            column_count: 10.0,
+            groups: vec![
+                crate::text_recognition::CtcWordGroup {
+                    text: "中文".to_owned(),
+                    columns: vec![1, 3],
+                    kind: CtcWordKind::Cjk,
+                },
+                crate::text_recognition::CtcWordGroup {
+                    text: "A1".to_owned(),
+                    columns: vec![5, 6],
+                    kind: CtcWordKind::Alphanumeric,
+                },
+            ],
+        };
+        let words = word_boxes("中文A1", &line, &alignment);
+        assert_eq!(
+            words
+                .iter()
+                .map(|word| (word.text.as_str(), word.bounding_box))
+                .collect::<Vec<_>>(),
+            vec![
+                ("中", [10.0, 0.0, 30.0, 30.0]),
+                ("文", [10.0, 20.0, 30.0, 50.0]),
+                ("A1", [10.0, 50.0, 30.0, 70.0]),
+            ]
+        );
+        assert_eq!(
+            words[0].polygon,
+            [
+                Point::new(10.0, 0.0),
+                Point::new(30.0, 0.0),
+                Point::new(30.0, 30.0),
+                Point::new(10.0, 30.0),
+            ]
+        );
     }
 
     #[test]

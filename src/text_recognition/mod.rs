@@ -16,6 +16,12 @@ const MAX_RECOGNITION_WIDTH: usize = 3200;
 #[derive(Debug, Clone, Default)]
 pub struct TextRecognizerOptions {
     pub session: OrtSessionOptions,
+    /// Preserve CTC timestep alignment for pipeline-level word boxes.
+    ///
+    /// The standalone result continues to expose only text and confidence;
+    /// document-coordinate boxes require the detector polygon and are produced
+    /// by [`crate::OcrPipeline`].
+    pub return_word_alignment: bool,
 }
 
 /// Text and mean CTC confidence for one input crop.
@@ -23,6 +29,28 @@ pub struct TextRecognizerOptions {
 pub struct TextRecognitionResult {
     pub text: String,
     pub score: f32,
+    #[serde(skip)]
+    pub(crate) word_alignment: Option<CtcWordAlignment>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct CtcWordAlignment {
+    pub column_count: f32,
+    pub groups: Vec<CtcWordGroup>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct CtcWordGroup {
+    pub text: String,
+    pub columns: Vec<usize>,
+    pub kind: CtcWordKind,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub(crate) enum CtcWordKind {
+    Cjk,
+    Alphanumeric,
+    Symbol,
 }
 
 /// PaddleOCR text recognizer with config-defined CTC vocabulary.
@@ -33,6 +61,7 @@ pub struct TextRecognizer {
     base_image_width: usize,
     vocabulary: Vec<String>,
     apply_arabic_bidi: bool,
+    return_word_alignment: bool,
 }
 
 impl std::fmt::Debug for TextRecognizer {
@@ -132,11 +161,16 @@ impl TextRecognizer {
                 model_id,
                 "arabic_PP-OCRv3_mobile_rec" | "arabic_PP-OCRv5_mobile_rec"
             ),
+            return_word_alignment: options.return_word_alignment,
         })
     }
 
     pub fn model_id(&self) -> &str {
         &self.model_id
+    }
+
+    pub(crate) fn returns_word_alignment(&self) -> bool {
+        self.return_word_alignment
     }
 
     pub fn recognize(&mut self, image: &RgbImage) -> Result<TextRecognitionResult> {
@@ -227,13 +261,18 @@ impl TextRecognizer {
         }
 
         let mut results = Vec::with_capacity(images.len());
-        for batch_index in 0..images.len() {
+        let max_wh_ratio = images.iter().fold(
+            self.base_image_width as f64 / self.image_height as f64,
+            |maximum, image| maximum.max(f64::from(image.width()) / f64::from(image.height())),
+        );
+        for (batch_index, image) in images.iter().enumerate() {
             let sample = output.index_axis(ndarray::Axis(0), batch_index);
             let mut previous = None;
             let mut text = String::new();
             let mut score_sum = 0.0;
             let mut character_count = 0usize;
-            for timestep in sample.outer_iter() {
+            let mut decoded = Vec::new();
+            for (column, timestep) in sample.outer_iter().enumerate() {
                 let mut best_index = 0usize;
                 let mut best_score = f32::NEG_INFINITY;
                 for (index, score) in timestep.iter().copied().enumerate() {
@@ -246,10 +285,21 @@ impl TextRecognizer {
                 previous = Some(best_index);
                 if best_index != 0 && !duplicate {
                     text.push_str(&self.vocabulary[best_index]);
+                    if self.return_word_alignment {
+                        decoded.push((self.vocabulary[best_index].clone(), column));
+                    }
                     score_sum += best_score;
                     character_count += 1;
                 }
             }
+            let word_alignment = self.return_word_alignment.then(|| {
+                build_word_alignment(
+                    &decoded,
+                    sample.shape()[0],
+                    f64::from(image.width()) / f64::from(image.height()),
+                    max_wh_ratio,
+                )
+            });
             if self.apply_arabic_bidi {
                 text = bidi_display(&text);
             }
@@ -260,6 +310,7 @@ impl TextRecognizer {
                 } else {
                     score_sum / character_count as f32
                 },
+                word_alignment,
             });
         }
         Ok(results)
@@ -273,6 +324,58 @@ impl TextRecognizer {
         let aspect_width = (self.image_height as f64 * image.width() as f64 / image.height() as f64)
             .ceil() as usize;
         aspect_width.min(padded_width).max(1)
+    }
+}
+
+fn build_word_alignment(
+    decoded: &[(String, usize)],
+    output_columns: usize,
+    image_wh_ratio: f64,
+    max_wh_ratio: f64,
+) -> CtcWordAlignment {
+    let mut groups: Vec<CtcWordGroup> = Vec::new();
+    let mut current_kind = None;
+    for (index, (token, column)) in decoded.iter().enumerate() {
+        let mut kind = token_kind(token);
+        if token == "."
+            && current_kind == Some(CtcWordKind::Alphanumeric)
+            && decoded
+                .get(index + 1)
+                .and_then(|(next, _)| next.chars().next())
+                .is_some_and(|character| character.is_ascii_digit())
+        {
+            kind = CtcWordKind::Alphanumeric;
+        }
+        if token == "-" && current_kind == Some(CtcWordKind::Alphanumeric) {
+            kind = CtcWordKind::Alphanumeric;
+        }
+
+        if current_kind != Some(kind) {
+            groups.push(CtcWordGroup {
+                text: String::new(),
+                columns: Vec::new(),
+                kind,
+            });
+            current_kind = Some(kind);
+        }
+        let group = groups
+            .last_mut()
+            .expect("a group is created before appending a decoded token");
+        group.text.push_str(token);
+        group.columns.push(*column);
+    }
+
+    CtcWordAlignment {
+        column_count: output_columns as f32 * (image_wh_ratio / max_wh_ratio) as f32,
+        groups,
+    }
+}
+
+fn token_kind(token: &str) -> CtcWordKind {
+    match token.chars().next() {
+        Some(character) if ('\u{4e00}'..='\u{9fff}').contains(&character) => CtcWordKind::Cjk,
+        Some(character) if character.is_ascii_alphanumeric() => CtcWordKind::Alphanumeric,
+        _ => CtcWordKind::Symbol,
     }
 }
 
@@ -334,5 +437,28 @@ mod tests {
 
         let narrow = RgbImage::new(100, 100);
         assert_eq!(padded_width_for(48, 320, &narrow), 320);
+    }
+
+    #[test]
+    fn word_alignment_groups_paddlex_ctc_columns() {
+        let decoded = vec![
+            ("A".to_owned(), 1),
+            ("-".to_owned(), 2),
+            ("1".to_owned(), 3),
+            (".".to_owned(), 4),
+            ("5".to_owned(), 5),
+            (" ".to_owned(), 6),
+            ("中".to_owned(), 8),
+            ("文".to_owned(), 10),
+        ];
+        let alignment = build_word_alignment(&decoded, 20, 2.0, 4.0);
+        assert_eq!(alignment.column_count, 10.0);
+        assert_eq!(alignment.groups.len(), 3);
+        assert_eq!(alignment.groups[0].text, "A-1.5");
+        assert_eq!(alignment.groups[0].columns, [1, 2, 3, 4, 5]);
+        assert_eq!(alignment.groups[0].kind, CtcWordKind::Alphanumeric);
+        assert_eq!(alignment.groups[1].kind, CtcWordKind::Symbol);
+        assert_eq!(alignment.groups[2].text, "中文");
+        assert_eq!(alignment.groups[2].kind, CtcWordKind::Cjk);
     }
 }

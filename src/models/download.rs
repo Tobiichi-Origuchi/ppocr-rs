@@ -146,6 +146,10 @@ pub struct DownloadedModel {
 /// Precedence: explicit path, `HF_HUB_CACHE`, legacy
 /// `HUGGINGFACE_HUB_CACHE`, `HF_HOME/hub`,
 /// `XDG_CACHE_HOME/huggingface/hub`, then the platform cache directory.
+/// The final platform fallback is conventionally
+/// `~/.cache/huggingface/hub` on Linux,
+/// `~/Library/Caches/huggingface/hub` on macOS, and
+/// `%LOCALAPPDATA%\huggingface\hub` on Windows.
 pub fn resolve_hf_hub_cache_dir(explicit: Option<&Path>) -> Result<PathBuf, ModelDownloadError> {
     resolve_cache_dir_from(explicit, CacheEnvironment::read(), dirs::cache_dir())
 }
@@ -343,6 +347,28 @@ mod tests {
         assert_eq!(
             resolve_cache_dir_from(Some(Path::new("/explicit")), environment, None).unwrap(),
             Path::new("/explicit")
+        );
+    }
+
+    #[test]
+    fn hf_home_and_platform_cache_roots_receive_the_hub_suffix() {
+        let environment = CacheEnvironment {
+            hf_home: Some(OsString::from("/portable/huggingface")),
+            ..CacheEnvironment::default()
+        };
+        assert_eq!(
+            resolve_cache_dir_from(None, environment, Some(PathBuf::from("/platform"))).unwrap(),
+            Path::new("/portable/huggingface/hub")
+        );
+
+        assert_eq!(
+            resolve_cache_dir_from(
+                None,
+                CacheEnvironment::default(),
+                Some(PathBuf::from("/platform/cache")),
+            )
+            .unwrap(),
+            Path::new("/platform/cache/huggingface/hub")
         );
     }
 

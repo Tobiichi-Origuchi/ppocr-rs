@@ -13,6 +13,12 @@ path = "src/lib.rs"
 [features]
 default = ["ort-download-binaries"]
 ort-download-binaries = ["ort/download-binaries", "ort/tls-rustls", "ort/copy-dylibs"]
+cuda = ["ort/cuda", "ort/lax-feature-matching"]
+webgpu = ["ort/webgpu", "ort/lax-feature-matching"]
+coreml = ["ort/coreml", "ort/lax-feature-matching"]
+directml = ["ort/directml", "ort/lax-feature-matching"]
+# Binding only: ONNX Runtime does not publish a prebuilt MIGraphX distribution.
+migraphx = ["ort/migraphx", "ort/lax-feature-matching"]
 
 [dependencies]
 clipper-sys = "0.8.0"

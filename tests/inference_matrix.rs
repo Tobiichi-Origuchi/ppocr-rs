@@ -5,7 +5,7 @@ use ppocr::image_geometry::{crop_text_region, sort_text_regions};
 use ppocr::{
     DocumentOrientationClassifier, DocumentOrientationClassifierOptions, DocumentRectifier,
     DocumentRectifierOptions, ModelDownloader, ModelDownloaderOptions, ModelKind, OcrPipeline,
-    TextDetector, TextDetectorOptions, TextRecognizer, TextRecognizerOptions,
+    OcrPipelineOptions, TextDetector, TextDetectorOptions, TextRecognizer, TextRecognizerOptions,
     TextlineOrientationClassifier, TextlineOrientationClassifierOptions, manifest,
 };
 
@@ -356,6 +356,72 @@ fn all_optional_pipeline_configurations_run() {
         }
     }
     assert_eq!(configuration_count, 12);
+}
+
+#[test]
+#[ignore = "downloads and verifies word boxes for all 34 recognizers on PPOCR_MATRIX_DOCUMENT"]
+fn all_recognizers_return_word_boxes() {
+    let downloader = downloader();
+    let (document, official_document) = fixture(
+        "PPOCR_MATRIX_DOCUMENT",
+        RgbImage::from_pixel(320, 192, Rgb([255, 255, 255])),
+    );
+    assert!(
+        official_document,
+        "PPOCR_MATRIX_DOCUMENT must point to the official OCR document"
+    );
+    let recognizer_ids: Vec<_> = manifest()
+        .models
+        .iter()
+        .filter(|model| model.kind == ModelKind::TextRecognition)
+        .map(|model| model.id.clone())
+        .collect();
+    assert_eq!(recognizer_ids.len(), 34);
+
+    for (index, recognizer_id) in recognizer_ids.iter().enumerate() {
+        eprintln!(
+            "word boxes {}/{}: {}",
+            index + 1,
+            recognizer_ids.len(),
+            recognizer_id
+        );
+        let mut pipeline = OcrPipeline::builder(&downloader)
+            .text_recognition_model(recognizer_id)
+            .disable_document_orientation()
+            .disable_document_rectification()
+            .disable_textline_orientation()
+            .pipeline_options(OcrPipelineOptions {
+                return_word_boxes: true,
+                ..OcrPipelineOptions::default()
+            })
+            .build()
+            .unwrap();
+        let result = pipeline.predict(&document).unwrap();
+        assert!(result.return_word_boxes);
+        for line in result.text_lines {
+            let words = line.words.expect("word boxes were requested");
+            assert_eq!(
+                words
+                    .iter()
+                    .map(|word| word.text.as_str())
+                    .collect::<String>(),
+                line.text,
+                "word content order differs for {recognizer_id}"
+            );
+            assert!(words.iter().all(|word| {
+                !word.text.is_empty()
+                    && word.bounding_box.iter().all(|value| value.is_finite())
+                    && word.polygon.iter().all(|point| {
+                        point.x.is_finite()
+                            && point.y.is_finite()
+                            && point.x >= 0.0
+                            && point.y >= 0.0
+                            && point.x <= result.processed_size.width as f32
+                            && point.y <= result.processed_size.height as f32
+                    })
+            }));
+        }
+    }
 }
 
 #[test]

@@ -35,6 +35,8 @@ pub enum OcrError {
     InvalidGeometry { reason: String },
     #[error("invalid OCR pipeline configuration: {reason}")]
     InvalidPipelineConfig { reason: String },
+    #[error("OCR concurrency error: {reason}")]
+    Concurrency { reason: String },
     #[error("invalid inference output for model {model_id:?}: {reason}")]
     InvalidOutput { model_id: String, reason: String },
     #[error(transparent)]
