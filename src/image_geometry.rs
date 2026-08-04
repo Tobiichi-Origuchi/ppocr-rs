@@ -211,16 +211,17 @@ fn homography(from: [(f64, f64); 4], to: [(f64, f64); 4]) -> Option<[f64; 9]> {
         }
         matrix.swap(pivot, best);
         let divisor = matrix[pivot][pivot];
-        for column in pivot..=8 {
-            matrix[pivot][column] /= divisor;
+        for value in &mut matrix[pivot][pivot..] {
+            *value /= divisor;
         }
-        for row in 0..8 {
+        let pivot_row = matrix[pivot];
+        for (row, matrix_row) in matrix.iter_mut().enumerate() {
             if row == pivot {
                 continue;
             }
-            let factor = matrix[row][pivot];
-            for column in pivot..=8 {
-                matrix[row][column] -= factor * matrix[pivot][column];
+            let factor = matrix_row[pivot];
+            for (value, pivot_value) in matrix_row[pivot..].iter_mut().zip(&pivot_row[pivot..]) {
+                *value -= factor * pivot_value;
             }
         }
     }

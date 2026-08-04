@@ -1,3 +1,9 @@
+mod engine;
+mod server;
+
 fn main() {
-    eprintln!("ppocr-worker implementation is being built");
+    if let Err(error) = server::run_stdio(engine::OcrEngine::default()) {
+        eprintln!("ppocr-worker failed: {error}");
+        std::process::exit(1);
+    }
 }

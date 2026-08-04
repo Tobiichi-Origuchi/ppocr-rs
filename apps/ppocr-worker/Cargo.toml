@@ -5,5 +5,17 @@ edition = "2024"
 rust-version = "1.92"
 publish = false
 
+[features]
+default = []
+cuda = ["ort/cuda", "ppocr/cuda"]
+webgpu = ["ort/webgpu", "ppocr/webgpu"]
+coreml = ["ort/coreml", "ppocr/coreml"]
+directml = ["ort/directml", "ppocr/directml"]
+migraphx = ["ort/migraphx", "ppocr/migraphx"]
+
 [dependencies]
+image = { version = "0.25.8", default-features = false, features = ["bmp", "gif", "jpeg", "png", "tiff", "webp"] }
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "api-27"] }
+ppocr = { package = "ppocr-rs", path = "../.." }
 ppocr-app-protocol = { path = "../../crates/ppocr-app-protocol" }
+thiserror = "2.0"
