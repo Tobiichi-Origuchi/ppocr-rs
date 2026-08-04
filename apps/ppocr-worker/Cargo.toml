@@ -1,0 +1,9 @@
+[package]
+name = "ppocr-worker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+
+[dependencies]
+ppocr-app-protocol = { path = "../../crates/ppocr-app-protocol" }

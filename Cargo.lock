@@ -2188,6 +2188,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
+name = "ppocr-app-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "ppocr-gui"
 version = "0.1.0"
 dependencies = [
@@ -2215,6 +2224,13 @@ dependencies = [
  "tempfile",
  "thiserror",
  "unicode-bidi",
+]
+
+[[package]]
+name = "ppocr-worker"
+version = "0.1.0"
+dependencies = [
+ "ppocr-app-protocol",
 ]
 
 [[package]]
