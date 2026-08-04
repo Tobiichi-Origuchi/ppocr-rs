@@ -1,0 +1,1712 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-03T14:44:00Z",
+  "sources": {
+    "paddleocr_commit": "2661c7c0ef5c613e8f93c6e93b2e052399f0f854",
+    "paddlex_commit": "ffb64904d23708863ff5b8da312a5cbd52a7f462",
+    "paddleocr_pipeline_url": "https://www.paddleocr.ai/latest/version3.x/pipeline_usage/OCR.html",
+    "paddlex_onnx_registry_url": "https://github.com/PaddlePaddle/PaddleX/blob/release/3.7/paddlex/inference/utils/official_models.py"
+  },
+  "models": [
+    {
+      "id": "PP-LCNet_x1_0_doc_ori",
+      "kind": "document_orientation",
+      "runtime_profile": "orientation_classifier",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-LCNet_x1_0_doc_ori_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-LCNet_x1_0_doc_ori_onnx",
+        "revision": "7330ab7039123e46af2dc03154b9969aa412c61d",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 6788069,
+            "sha256": "af9a0a4f317ff0709ce752067807f819cb15d883f8ecad89f28df1c6ee2d9c92",
+            "git_oid": "41d877995ea35fc263f1dba3fa1d7e05048f91fa"
+          },
+          {
+            "path": "inference.yml",
+            "size": 766,
+            "sha256": null,
+            "git_oid": "be5ff4a823ed0dc4fb6fa8e228608ba9ab9fc01d"
+          }
+        ]
+      }
+    },
+    {
+      "id": "UVDoc",
+      "kind": "document_rectification",
+      "runtime_profile": "uvdoc",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/UVDoc_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/UVDoc_onnx",
+        "revision": "3bcf535371727d11e783101f79a504c68848aae3",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 31684150,
+            "sha256": "54cab30dc2cf347b4f3d6971c833b1c3d84f5ef17280f1f6d15796bff20e63d6",
+            "git_oid": "74ebb6941b979cd69ab47e2c217afdb88e629ce2"
+          },
+          {
+            "path": "inference.yml",
+            "size": 330,
+            "sha256": null,
+            "git_oid": "7157cf42439ba68cc2e4149def1d8961025afeb9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-LCNet_x0_25_textline_ori",
+      "kind": "textline_orientation",
+      "runtime_profile": "orientation_classifier",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-LCNet_x0_25_textline_ori_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-LCNet_x0_25_textline_ori_onnx",
+        "revision": "aea1f18d97338aaf84b463f90192f2820524a00a",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 1019454,
+            "sha256": "94a6a0a0425f2b5f08b5df72086f2d72abe40f1d22f6d12d2cd83674f11f2ff3",
+            "git_oid": "4546a6aa8260c22ccb6fb2dcb7901f8d244d41c1"
+          },
+          {
+            "path": "inference.yml",
+            "size": 736,
+            "sha256": null,
+            "git_oid": "75780082b188b45f19cfcaa88dc1a3774ac43abd"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-LCNet_x1_0_textline_ori",
+      "kind": "textline_orientation",
+      "runtime_profile": "orientation_classifier",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-LCNet_x1_0_textline_ori_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-LCNet_x1_0_textline_ori_onnx",
+        "revision": "7fdcf3cf7061163eda7183b224aa334bd33068f7",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 6777816,
+            "sha256": "38aa97cd4be591e0ad304e659f07ba30d946f27a63315433f6659c69c8778345",
+            "git_oid": "63a24a10a1f8e8207eb969e55a9e38dc1f462b01"
+          },
+          {
+            "path": "inference.yml",
+            "size": 735,
+            "sha256": null,
+            "git_oid": "61977592412f3529cf153ed9c904f6700cb8b9a6"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv6_medium_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_medium_det_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_medium_det_onnx",
+        "revision": "61323801669c338b7891481ec7bac61ce31b576a",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 62032837,
+            "sha256": "eb13b44b25bb36f89528b68720af8a61d9cf381176107f465db1757b65d086e1",
+            "git_oid": "1fb73622f72ca070acc9b1cb5f543d2df1be090d"
+          },
+          {
+            "path": "inference.yml",
+            "size": 886,
+            "sha256": null,
+            "git_oid": "1c5c05809877e4c7385f899019fff0ac9017ca80"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv6_small_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_small_det_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_small_det_onnx",
+        "revision": "28fe5895c24fd108c19eb3e8479f4ab385fbfc62",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 9880512,
+            "sha256": "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e",
+            "git_oid": "d5d3f5b992066b64c7f6bed8ab402860f4325aaa"
+          },
+          {
+            "path": "inference.yml",
+            "size": 885,
+            "sha256": null,
+            "git_oid": "9ce7e05c2621f968d47d4011c04c30cbd91be173"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv6_tiny_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_tiny_det_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_tiny_det_onnx",
+        "revision": "2ba1506c0380b8f0b03dd142459aac66d4421f6c",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 1780590,
+            "sha256": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8",
+            "git_oid": "cd551d0ec8f49b28ac306ae7bab6328c66bd156f"
+          },
+          {
+            "path": "inference.yml",
+            "size": 883,
+            "sha256": null,
+            "git_oid": "28dccd0baa8a939287aaa410cbacdbc94b2e0925"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv5_server_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_server_det_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv5_server_det_onnx",
+        "revision": "dcf248c4dcc064c6d030db241255f9e8fbc6733a",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 88116791,
+            "sha256": "10803475a591f7dc623e24670fb5752ec94d39a1f8cf069aac1b6f0ce19cfc85",
+            "git_oid": "0c4ec54280744bc9210845f06bd3e3e1d31dc32e"
+          },
+          {
+            "path": "inference.yml",
+            "size": 903,
+            "sha256": null,
+            "git_oid": "c4f16313e7e2c567da8e9fa8f4aeba14a307786e"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv5_mobile_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_det_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv5_mobile_det_onnx",
+        "revision": "e6f4fa85f00e168c862bc462aebca69eef9b3d3d",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 4826518,
+            "sha256": "a431985659dc921974177a95adcfbb90fd9e51989a5e04d70d0b75f597b6e61d",
+            "git_oid": "5d6d41e10487b71630ee7dc4964c53b226ac022f"
+          },
+          {
+            "path": "inference.yml",
+            "size": 903,
+            "sha256": null,
+            "git_oid": "579d10695d2dd6e85c5ecba02d151ae5c077aa49"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv4_server_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv4_server_det_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv4_server_det_onnx",
+        "revision": "6b646b224568773ca4005dab4d5081fff0cd44b1",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 113383359,
+            "sha256": "2ae8bed01c488e83e8fbe4615c4d5e354dea1bda2e538aafebde9a801c33aa40",
+            "git_oid": "132de9210839d29c84c5bec065623e03fa5304cf"
+          },
+          {
+            "path": "inference.yml",
+            "size": 903,
+            "sha256": null,
+            "git_oid": "8907f1ccf40f9bde0d67183f8c5aed2c3a59a83b"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 113612800,
+          "source_archive_sha256": "45238c951457e291844dfa6fcd7f3faca00583f3e54b24a9508bb8e0380578c4",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              64,
+              96
+            ],
+            "max_abs_error": 1.280568540096283e-07
+          }
+        }
+      }
+    },
+    {
+      "id": "PP-OCRv4_mobile_det",
+      "kind": "text_detection",
+      "runtime_profile": "db_detector",
+      "variant": null,
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv4_mobile_det_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv4_mobile_det_onnx",
+        "revision": "5cd2cac1bd4243c43ea2e3742b1b4bbef0a28aed",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 4767934,
+            "sha256": "64f2f901ba4ea646f448c7df57f299bdda3e74718a3ef585d65e29eca2b7a1a2",
+            "git_oid": "28667ab45bc365b12b52cf43a16b10c282469734"
+          },
+          {
+            "path": "inference.yml",
+            "size": 903,
+            "sha256": null,
+            "git_oid": "ce0997f275b851cea7136967324accac9a1e9110"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 4935680,
+          "source_archive_sha256": "d212d7a9684e33696f3c817ff1dd8ff23a942c5d4449e6f19c8f3e8259a266ab",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              64,
+              96
+            ],
+            "max_abs_error": 9.530322131467983e-08
+          }
+        }
+      }
+    },
+    {
+      "id": "PP-OCRv6_medium_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_medium_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_medium_rec_onnx",
+        "revision": "50c7eacafc52fa7bcf4194e8cd08e46f8558504b",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 76554979,
+            "sha256": "9c09abf0957f7968c7586464b7397b84ad2387a0497a351af40e9acc71b673ba",
+            "git_oid": "d9f7b9d18a7bb0a789f41615d0a570173250aa12"
+          },
+          {
+            "path": "inference.yml",
+            "size": 150580,
+            "sha256": null,
+            "git_oid": "c53a96fcd315a86cb4748d2746f3d90941e1c6d8"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv6_small_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_small_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_small_rec_onnx",
+        "revision": "b8f84f0b80c529de40b4fbb3544b84fa7233a513",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 21159378,
+            "sha256": "5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634",
+            "git_oid": "666cee731b98bee55376f02690226d60db9a8187"
+          },
+          {
+            "path": "inference.yml",
+            "size": 150579,
+            "sha256": null,
+            "git_oid": "f1887595d177511e6af56fabd0baa25756d33bd8"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv6_tiny_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv6_tiny_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv6_tiny_rec_onnx",
+        "revision": "2612ab37152ae0a677521bae4e1e3d4fb4cf7c30",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 4462639,
+            "sha256": "9ef676d6ed3c88256a2d92c640c44f25b0c40947e111b14b8be8f594091563e6",
+            "git_oid": "f5c5ab038605f94421055d829639d37fbfd14cdf"
+          },
+          {
+            "path": "inference.yml",
+            "size": 55571,
+            "sha256": null,
+            "git_oid": "85905320b166ff9fd95efbb69d1b0107f8ea3150"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv5_server_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_server_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv5_server_rec_onnx",
+        "revision": "b70df217f4fd99d14f970bad092cebe7d74cc4d1",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 84503027,
+            "sha256": "d9dc333c9c7b042c6dffb8e33d72b6f65c9c1d463d0a3c2f78174fea55e94752",
+            "git_oid": "84a7c59b7036c350368d2ff09f5be0f6cc2b328d"
+          },
+          {
+            "path": "inference.yml",
+            "size": 148345,
+            "sha256": null,
+            "git_oid": "f5156e77296f540e963bdf4f89be90153234a90e"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/PP-OCRv5_mobile_rec_onnx",
+        "revision": "ed152b8b495f84de93cda5709d768548a9127622",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 16534782,
+            "sha256": "da72dc72ca4dc220df0dfde68c1dedc31c58d3e76a25871122e5056227d50092",
+            "git_oid": "70ad72c1c53b28c19eaef0732db8a955805d0e45"
+          },
+          {
+            "path": "inference.yml",
+            "size": 148345,
+            "sha256": null,
+            "git_oid": "176f6d552a120e6fa0a812089fb36c1bb983ce28"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PP-OCRv4_server_rec_doc",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv4_server_rec_doc_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv4_server_rec_doc_onnx",
+        "revision": "7efbc8757253954ed69987d8940ae2534232ff9b",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 94881420,
+            "sha256": "98e70bd5936677d3f3e4509b9208f763a5acbcb899da1142b076127d320f9c4c",
+            "git_oid": "2e7a56b2187e4dba25c7e63e865925306994cca0"
+          },
+          {
+            "path": "inference.yml",
+            "size": 125669,
+            "sha256": null,
+            "git_oid": "4a9c31c5d54483d7e8230b73f0df9149c9e10ca1"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 190341120,
+          "source_archive_sha256": "e4de92bf3a649426821ae9cda08d2165ab88f31b29da0430a256bd606b7f5ee5",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 7.092952728271484e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "PP-OCRv4_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv4_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv4_mobile_rec_onnx",
+        "revision": "f3c998207ce616320461cf55a3b88d67910b90a5",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 10845231,
+            "sha256": "682a725637aeda8e774197d404e0bd2b109ffcfca69af9f309c8e7c4d8bb20e2",
+            "git_oid": "25242ee1f41875e07298e99595eb1f3b83f37bd7"
+          },
+          {
+            "path": "inference.yml",
+            "size": 53543,
+            "sha256": null,
+            "git_oid": "d1ad21880d9e9e6937496be0dd9290798cf69a0d"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 11048960,
+          "source_archive_sha256": "f71ee33646159e43ea5dcb9f0467259ba75e403e6f7e9a9a7d2c6208d36b92ec",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 4.351139068603516e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "PP-OCRv4_server_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv4_server_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv4_server_rec_onnx",
+        "revision": "d65e79e2a0bf6d26bc8b602ee293bae05fb46e04",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 90522516,
+            "sha256": "df265c02862bac87a3ceef609f32a4598eed8c680117f5622bd1a0c064125467",
+            "git_oid": "368db1bb9f7f3ec142580914a4d50b4fe3cb448c"
+          },
+          {
+            "path": "inference.yml",
+            "size": 53543,
+            "sha256": null,
+            "git_oid": "5e3c1eec0d06fdd4dfb2c61dfaebbe2284cc12f8"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 181493760,
+          "source_archive_sha256": "fc3b369c466de43d8f3daf66eabfeafd6f4d8e02ca0a3cdb9658e593fd4ccad3",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.3113021850585938e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "multilingual",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/PP-OCRv3_mobile_rec_onnx",
+        "revision": "6c798beda96726c9d54666db22b46c01e488b634",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 10667318,
+            "sha256": "660fe1abf796f9da0fbd1d1e55d0887738f3b8e43304ced8143068be0ee52e75",
+            "git_oid": "602f0d265ed71e7149ced5fc2cc0febeed843d56"
+          },
+          {
+            "path": "inference.yml",
+            "size": 53514,
+            "sha256": null,
+            "git_oid": "b192a8b0916c20b1759d175fb1f7a5e7e8da3b5b"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 10844160,
+          "source_archive_sha256": "6488e695de01d3942476d71829613e37741688c1ef2528379aacf8cee7952402",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.0132789611816406e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "ch_SVTRv2_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "chinese",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/ch_SVTRv2_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/ch_SVTRv2_rec_onnx",
+        "revision": "ecc60c0871e4884dba632e4da6af391c66d6ea0e",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 84148434,
+            "sha256": "662baccd4aa2fe8afce28c40cb432b4496bcf30dacfe7233f4c124b0e34e28ef",
+            "git_oid": "cded7a72a6973288e5de32a08a9ad8538cb47626"
+          },
+          {
+            "path": "inference.yml",
+            "size": 53537,
+            "sha256": null,
+            "git_oid": "73909efa5c5b74d638f9334d3208f3cc8fb3cc09"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 84377600,
+          "source_archive_sha256": "00cabf77e23276ed3b77f838251048d292f665a814c0b979d2b80fa051b78173",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 3.2782554626464844e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "ch_RepSVTR_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "chinese",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/ch_RepSVTR_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/ch_RepSVTR_rec_onnx",
+        "revision": "6c0d5a8ef6c88cc2c974dcbe4c2ee1b0491251d2",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 25354884,
+            "sha256": "b184191e5a664e0367aa394bb754abcff2c6daa5fb5c41109c017dceedd608f3",
+            "git_oid": "c6d00bf2f456d67254040281047189249b3ba52a"
+          },
+          {
+            "path": "inference.yml",
+            "size": 53538,
+            "sha256": null,
+            "git_oid": "055b752dee99a77873b5341f84b93b5b04d431ee"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 51220480,
+          "source_archive_sha256": "6e613381d483ec4f5cf29f52a58dcbe6547bfd188ea9e762c9ae0130fb5eafc8",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 5.066394805908203e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "en_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "english",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/en_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/en_PP-OCRv5_mobile_rec_onnx",
+        "revision": "3fafbc3b5dcf93dd72add9f48368be8a3a2cd33b",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7848423,
+            "sha256": "b5f833dfc5d0eb71da397b4efa06ebeee9b431b690a47d6af40d77d8eabc557f",
+            "git_oid": "64799df06203b9b86051515c8d267374db8c699e"
+          },
+          {
+            "path": "inference.yml",
+            "size": 3964,
+            "sha256": null,
+            "git_oid": "91a401a7220881921c249b92852a96f9dbf2132a"
+          }
+        ]
+      }
+    },
+    {
+      "id": "en_PP-OCRv4_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "english",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/en_PP-OCRv4_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/en_PP-OCRv4_mobile_rec_onnx",
+        "revision": "08c153163242809c0668c72ecb50d1652874011c",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7685668,
+            "sha256": "75e3265c26f9685818aaf0a41d380c888d3692810d8a15ffd4f1576de809dd58",
+            "git_oid": "c2e636e0eaf285738f4391cd8f9414d570b053bc"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1376,
+            "sha256": null,
+            "git_oid": "9375170acd341cbac46081f0559cba73ee08d79d"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 7833600,
+          "source_archive_sha256": "42067abe43473ce9d68e3b4bf050765038062acfd810f7e1738af078c3198c8a",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 4.76837158203125e-07
+          }
+        }
+      }
+    },
+    {
+      "id": "en_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "english",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/en_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/en_PP-OCRv3_mobile_rec_onnx",
+        "revision": "171bc6b53fcdb4c30da63c7fa226ecaaa42dcfb9",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8970031,
+            "sha256": "8147df3309ba59d631b999b97fbcc1c3908080151c9644817d98f52e6e1a4a39",
+            "git_oid": "ada218ee6310fb2a3197702922b6e91ce8dc0b41"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1347,
+            "sha256": null,
+            "git_oid": "8a92d0518db73fe0eff05f18ce2ae10377438ed5"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 18186240,
+          "source_archive_sha256": "261fc128c172f6027af9e3c136c0ec33a6d1ab899c30e9e7907b8a23fd7f59f5",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 3.2186508178710938e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "korean_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "korean",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/korean_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/korean_PP-OCRv5_mobile_rec_onnx",
+        "revision": "5c6f574b8e2230adf4287b33e736d71b9fabd28e",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 13418787,
+            "sha256": "92f0b7785e64fc9090106a241cf4c1eb97472824558272751b88a2a4476d3a08",
+            "git_oid": "4597b271d1a6889a1aae5d6d4bb8d1710f3e2b6b"
+          },
+          {
+            "path": "inference.yml",
+            "size": 96039,
+            "sha256": null,
+            "git_oid": "ba8f60f36464f8444b71301062ec6bf4f7b2d1e0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "latin_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "latin",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/latin_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/latin_PP-OCRv5_mobile_rec_onnx",
+        "revision": "89d3a50e2c27e2e7cceeab0e944c25c807d5db4f",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8042023,
+            "sha256": "7888113072263cb471b93f66dd5e2ad70548dc526fa1ace760d0d973dd121498",
+            "git_oid": "7993fd2422eceeae186e6784142ae5905023f9d1"
+          },
+          {
+            "path": "inference.yml",
+            "size": 6817,
+            "sha256": null,
+            "git_oid": "89550cda19e4cebea8807bbbc632a8980bbc8880"
+          }
+        ]
+      }
+    },
+    {
+      "id": "eslav_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "east_slavic",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/eslav_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/eslav_PP-OCRv5_mobile_rec_onnx",
+        "revision": "9a32171fc5718746875e1a261818884517975013",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7887627,
+            "sha256": "b3018ef2b09a0250b6e0c8e871c927098363e5fd4df890cc68e8358eb0aaf1bd",
+            "git_oid": "77b7bb162a2bcf9be4415f91b4b6397ba632b76d"
+          },
+          {
+            "path": "inference.yml",
+            "size": 4538,
+            "sha256": null,
+            "git_oid": "0015bad9206cf19af608e629518a3bbb581772c1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "th_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "thai",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/th_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/th_PP-OCRv5_mobile_rec_onnx",
+        "revision": "1d4adbbafb1034a2fd6618498575b81ea7b69f69",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7891015,
+            "sha256": "27618be66018f8598ac0a526a593f9f1cebf794e7eded93428e8fb016e537f5f",
+            "git_oid": "9e86909e39053959217883d2be72fee8149c5826"
+          },
+          {
+            "path": "inference.yml",
+            "size": 4667,
+            "sha256": null,
+            "git_oid": "642b89540329b70294957a0ea2c3bc8052a1d878"
+          }
+        ]
+      }
+    },
+    {
+      "id": "el_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "greek",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/el_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx",
+        "revision": "8152b89d2ee0e1d4c92decab75fe75e5e3d836b6",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7808735,
+            "sha256": "2acf17fcaea2bc81b878e311e6263b8885f48bb03796f75f9f30ed3242bbaa6d",
+            "git_oid": "2eec3a3a39c90261a756491c36b07c6ffd20e0c5"
+          },
+          {
+            "path": "inference.yml",
+            "size": 3317,
+            "sha256": null,
+            "git_oid": "ac3179712a4848e523b038bf0ec3881706747ca5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "arabic_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "arabic",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/arabic_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/arabic_PP-OCRv5_mobile_rec_onnx",
+        "revision": "14aaedcd75825982689ecf5cd64ab33ee083215a",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7998947,
+            "sha256": "799113ebf267fbe742deb99eb36e8d42c9ddc5291ceacf92add41b4d52a59110",
+            "git_oid": "ccc1cced7d77c30a6d5c86577dbe29d14f765564"
+          },
+          {
+            "path": "inference.yml",
+            "size": 6165,
+            "sha256": null,
+            "git_oid": "bfc972d4c07cf0654e07ed9451a3868d325b95b9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cyrillic_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "cyrillic",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/cyrillic_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/cyrillic_PP-OCRv5_mobile_rec_onnx",
+        "revision": "2cef88145434beb8afa9dd82d77d799eb1ad7b29",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8048799,
+            "sha256": "5371ee1ddaa7983cc62d0818d99e982b6804638c85e4f960d59a574094e172e5",
+            "git_oid": "3092dd46b8de545586473fb70b89edbfb68b7ad2"
+          },
+          {
+            "path": "inference.yml",
+            "size": 6991,
+            "sha256": null,
+            "git_oid": "6de7a2de61f1f2839229d7ab2fc4743330053839"
+          }
+        ]
+      }
+    },
+    {
+      "id": "devanagari_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "devanagari",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/devanagari_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/devanagari_PP-OCRv5_mobile_rec_onnx",
+        "revision": "251aec19e36739540d35e2cc943f6aa7503b98e5",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7912311,
+            "sha256": "cb789212ce96c69d3e74728ae4309d179281d68cb3945d0616b67cafab41c986",
+            "git_oid": "daec0dbece322a6dda3f36709275469abed53bba"
+          },
+          {
+            "path": "inference.yml",
+            "size": 5027,
+            "sha256": null,
+            "git_oid": "777c30094e8c858d2aee6182fd3b9aa975da1b52"
+          }
+        ]
+      }
+    },
+    {
+      "id": "te_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "telugu",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/te_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/te_PP-OCRv5_mobile_rec_onnx",
+        "revision": "f1197c83430241c58c64b0952b3a80366d04eeba",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7898759,
+            "sha256": "8238bfc46d4cffe720ed6706e3842802467343497428693ff2bfb4e6b3caa36b",
+            "git_oid": "599096378b82e2aa9ad14d83a84d5aac5c40eee8"
+          },
+          {
+            "path": "inference.yml",
+            "size": 4795,
+            "sha256": null,
+            "git_oid": "48a4f5b9a07044cb8db0668310c0a3f03c4dea0e"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ta_PP-OCRv5_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "tamil",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/ta_PP-OCRv5_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "paddlepaddle_official",
+        "status": "ready",
+        "repo_id": "PaddlePaddle/ta_PP-OCRv5_mobile_rec_onnx",
+        "revision": "0db89798af0d5218fad9ea7ace0557526e9077f1",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 7885691,
+            "sha256": "c6d2b682d2a0ea4cb1fccdba295976f93fd439964d16cdc666cadef531accbee",
+            "git_oid": "16c68d6dae0b0bb61704c9db9d4c94664cdd1723"
+          },
+          {
+            "path": "inference.yml",
+            "size": 4579,
+            "sha256": null,
+            "git_oid": "d9d44343f879cc7922b193717b0db2bfd2f55480"
+          }
+        ]
+      }
+    },
+    {
+      "id": "korean_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "korean",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/korean_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/korean_PP-OCRv3_mobile_rec_onnx",
+        "revision": "a9866b110732307d1b54d523a6d8ab1b61ffbc96",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 9904214,
+            "sha256": "b9d6e6f6697fab262c64d245266ce41a2b25b91dd3544ea81f24dedc584f1fc2",
+            "git_oid": "1423f70c5e2002621f85c57d305ada0f53fa0656"
+          },
+          {
+            "path": "inference.yml",
+            "size": 30009,
+            "sha256": null,
+            "git_oid": "25ca9efacb0e595482038bca91c118dfd4a34a33"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 10055680,
+          "source_archive_sha256": "3619636ffce1f4b93cf76ddc0bfb7bdb9c15af1ec2fc1d02554384f0e70d5a17",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 2.9802322387695312e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "japan_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "japanese",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/japan_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/japan_PP-OCRv3_mobile_rec_onnx",
+        "revision": "1c772b3dd782e6ac4e61aba8bfe9683bee3334fc",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 10089078,
+            "sha256": "2e397c27461751befc82eca78c9b19e87322ebee34e7316468b21856f9977d64",
+            "git_oid": "5caf313a99252037e2e839bcdb2754375b24b634"
+          },
+          {
+            "path": "inference.yml",
+            "size": 35698,
+            "sha256": null,
+            "git_oid": "5f9a05fa58cf834088f07cb2b3456df47aa34a4f"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 10250240,
+          "source_archive_sha256": "f09560e262d03dcc203402d0fef2e90858dd863387e5621c69fe5350f70ae878",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 2.205371856689453e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "chinese_cht_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "traditional_chinese",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/chinese_cht_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/chinese_cht_PP-OCRv3_mobile_rec_onnx",
+        "revision": "f172dbb3acda9bd0ee2fc66b6aa445dff9069445",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 11134802,
+            "sha256": "de2069787a00b853cf935f3fe78ce391f1adc30a98a20f69f0ab73e1ec737df4",
+            "git_oid": "66719b6996942c8740894595fbdf2bc01fb46a6c"
+          },
+          {
+            "path": "inference.yml",
+            "size": 67913,
+            "sha256": null,
+            "git_oid": "8d94869146d2ac65cfb71aeb41a3cd764cf4b332"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 11325440,
+          "source_archive_sha256": "f03bd54fe9911a6a10a09956cae570294eb55c61096a12e437d5eb9501f52288",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 2.2649765014648438e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "te_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "telugu",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/te_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/te_PP-OCRv3_mobile_rec_onnx",
+        "revision": "367fa73a3e191961d22ea05fc730aab04ddfcee7",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8984594,
+            "sha256": "14be9c680297909160516a24e6a8597baaac401808e2b454dc25fb95bce3f779",
+            "git_oid": "85eb1e7baa29d78ff074516bea118d5272ca867e"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1798,
+            "sha256": null,
+            "git_oid": "3938684ad439a497be81afe02065e21dc9bc4dca"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9113600,
+          "source_archive_sha256": "3d79d3f11ecfb278bf52d8a1253aee037bc167d27d12111afc7e175c96ec9f7b",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 9.834766387939453e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "ka_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "kannada",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/ka_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/ka_PP-OCRv3_mobile_rec_onnx",
+        "revision": "c82f7e84dc7dfd09e82669ceba2f4c9defd9a105",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8985114,
+            "sha256": "f47047c42f2ef5311a07a672aa6386ccdc239f7c324aabcb115c2d672d8e3bb6",
+            "git_oid": "74db6443f21d3e70529a42797371cf2380fb0724"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1819,
+            "sha256": null,
+            "git_oid": "93c97407a005051d6cbe4dc69cd69438cbfac62d"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 18227200,
+          "source_archive_sha256": "45679e20a5a899710075bf4b70459750e4e91381a0d80d9de3ef99608c53187b",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 7.152557373046875e-07
+          }
+        }
+      }
+    },
+    {
+      "id": "ta_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "tamil",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/ta_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/ta_PP-OCRv3_mobile_rec_onnx",
+        "revision": "e4b00a4e02b2f48f8cf9286eebc7be1f7773a93c",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8978614,
+            "sha256": "e7a49663d91c263f3c7ac2999da888d82a53ae86536deb9786e2afafa7bf1ddd",
+            "git_oid": "ff5cc6a412a9d67b787a625ca572a5b10127529c"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1619,
+            "sha256": null,
+            "git_oid": "642b95144a49233e020974501be1039ebf16ed1a"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9103360,
+          "source_archive_sha256": "63c9e304766d12bf617186f75a7790e1a9e0a4a944a33d8d51a49d615e38527d",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.430511474609375e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "latin_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "latin",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/latin_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/latin_PP-OCRv3_mobile_rec_onnx",
+        "revision": "c3ef07ba5ac7d2f231fb8b1f9745d4dcf8f37a1c",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8993434,
+            "sha256": "2bdd80b2a52fb2bb08b7407867eeb04fc8059b828dd46e500a9d48ba76ace9d8",
+            "git_oid": "27b5606a9ad4385ff3433738554d837d66b270b4"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1984,
+            "sha256": null,
+            "git_oid": "f6084be66c4555690581b4df569b87277f2a513d"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9123840,
+          "source_archive_sha256": "041950a7850da4d8a5ddbb24c2f35c7c9c4754277c20bcefc745c9bd73bda8a2",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.1324882507324219e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "arabic_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "arabic",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/arabic_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/arabic_PP-OCRv3_mobile_rec_onnx",
+        "revision": "bd089ea44f4229385fdb506afc69730fe7ffd038",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8987194,
+            "sha256": "0394ca6c66c72d882b199aaeff34b3b448328592e14a0f95b36a398a339b2142",
+            "git_oid": "21dd47ed68a6ed39fcfe65f273b8229109e7b739"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1806,
+            "sha256": null,
+            "git_oid": "261e737c564e84b267b99e88bb5beb15194d325e"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9113600,
+          "source_archive_sha256": "03e1f1f50beead84809e456bd668f5b598b7b61803349551fd49dafd5ac496c3",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.5497207641601562e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "cyrillic_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "cyrillic",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/cyrillic_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/cyrillic_PP-OCRv3_mobile_rec_onnx",
+        "revision": "8031fa12fd507fcb12545ece6945560a2ce74862",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8987714,
+            "sha256": "6e5b2a38dae41e73bc446ddaa22cd3e8ca0ae0cb69ab11108a7158da6cdb519e",
+            "git_oid": "d1a98895e45c6733bde2ebb57ca14c340f61108d"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1823,
+            "sha256": null,
+            "git_oid": "14955a163c95f0baa65a983bc2a3fe98b1fa3033"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9113600,
+          "source_archive_sha256": "4b46ab52a1490c9864ea12d16c8a5a532b43b3cf7c2b55a466d2793c33e13b75",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 1.0132789611816406e-06
+          }
+        }
+      }
+    },
+    {
+      "id": "devanagari_PP-OCRv3_mobile_rec",
+      "kind": "text_recognition",
+      "runtime_profile": "ctc_recognizer",
+      "variant": "devanagari",
+      "paddle_inference_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/devanagari_PP-OCRv3_mobile_rec_infer.tar",
+      "artifact": {
+        "origin": "locally_converted",
+        "status": "ready",
+        "repo_id": "tobiichioriguchi/devanagari_PP-OCRv3_mobile_rec_onnx",
+        "revision": "2871bc96222966aa7393708eba5a9149ab3935dc",
+        "license": "apache-2.0",
+        "required_files": [
+          {
+            "path": "inference.onnx",
+            "size": 8988754,
+            "sha256": "444426a637dd15aeb43c59f18893e3c9415cf572170396b6aa3e7112c0a6400d",
+            "git_oid": "df1421c66d68568ac1a291fdc6ea575b0468973d"
+          },
+          {
+            "path": "inference.yml",
+            "size": 1939,
+            "sha256": null,
+            "git_oid": "37f8b848756231c866fee77a48489b29e0956306"
+          }
+        ],
+        "conversion": {
+          "source_archive_size": 9113600,
+          "source_archive_sha256": "a04a67f8763edde345a461b2cbefb73d2d7e0db0d1c1736447cacd81fdafb24b",
+          "paddle_version": "3.3.0",
+          "paddlex_version": "3.7.0",
+          "paddle2onnx_version": "2.0.2rc3",
+          "onnx_version": "1.17.0",
+          "onnxruntime_version": "1.28.0",
+          "opset": 11,
+          "validation": {
+            "onnx_checker": true,
+            "ort_cpu_execution": true,
+            "paddle_output_parity": true,
+            "input_shape": [
+              1,
+              3,
+              48,
+              160
+            ],
+            "max_abs_error": 2.3245811462402344e-06
+          }
+        }
+      }
+    }
+  ]
+}
