@@ -1,7 +1,9 @@
 use image::{Rgb, RgbImage};
 use ppocr::{
-    ModelDownloader, ModelDownloaderOptions, TextDetector, TextDetectorOptions, TextRecognizer,
-    TextRecognizerOptions,
+    DocumentOrientationClassifier, DocumentOrientationClassifierOptions, DocumentRectifier,
+    DocumentRectifierOptions, ModelDownloader, ModelDownloaderOptions, TextDetector,
+    TextDetectorOptions, TextRecognizer, TextRecognizerOptions, TextlineOrientationClassifier,
+    TextlineOrientationClassifierOptions,
 };
 
 #[test]
@@ -32,4 +34,39 @@ fn tiny_recognizer_runs_end_to_end() {
     let image = RgbImage::from_pixel(160, 48, Rgb([255, 255, 255]));
     let result = recognizer.recognize(&image).unwrap();
     assert!(result.score.is_finite());
+}
+
+#[test]
+#[ignore = "downloads models from Hugging Face"]
+fn optional_classifiers_run_end_to_end() {
+    let downloader = ModelDownloader::new(ModelDownloaderOptions::default()).unwrap();
+    let image = RgbImage::from_pixel(320, 160, Rgb([255, 255, 255]));
+
+    let mut document = DocumentOrientationClassifier::from_model(
+        "PP-LCNet_x1_0_doc_ori",
+        &downloader,
+        DocumentOrientationClassifierOptions::default(),
+    )
+    .unwrap();
+    assert!(document.classify(&image).unwrap().score.is_finite());
+
+    let mut textline = TextlineOrientationClassifier::from_model(
+        "PP-LCNet_x0_25_textline_ori",
+        &downloader,
+        TextlineOrientationClassifierOptions::default(),
+    )
+    .unwrap();
+    assert!(textline.classify(&image).unwrap().score.is_finite());
+}
+
+#[test]
+#[ignore = "downloads models from Hugging Face"]
+fn document_rectifier_runs_end_to_end() {
+    let downloader = ModelDownloader::new(ModelDownloaderOptions::default()).unwrap();
+    let mut rectifier =
+        DocumentRectifier::from_model("UVDoc", &downloader, DocumentRectifierOptions::default())
+            .unwrap();
+    let image = RgbImage::from_pixel(128, 64, Rgb([255, 255, 255]));
+    let output = rectifier.rectify(&image).unwrap();
+    assert_eq!(output.dimensions(), image.dimensions());
 }

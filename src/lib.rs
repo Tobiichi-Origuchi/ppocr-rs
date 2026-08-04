@@ -1,14 +1,22 @@
 //! PaddleOCR model management and ONNX Runtime inference implemented in Rust.
 
+mod classification;
 mod config;
 mod error;
 mod image_ops;
 mod runtime;
 
+pub mod document_orientation;
+pub mod document_rectification;
 pub mod models;
 pub mod text_detection;
 pub mod text_recognition;
+pub mod textline_orientation;
 
+pub use document_orientation::{
+    DocumentOrientationClassifier, DocumentOrientationClassifierOptions, DocumentOrientationResult,
+};
+pub use document_rectification::{DocumentRectifier, DocumentRectifierOptions};
 pub use error::{OcrError, Result};
 pub use image::RgbImage;
 pub use runtime::OrtSessionOptions;
@@ -17,6 +25,9 @@ pub use text_detection::{
     TextDetectorOptions,
 };
 pub use text_recognition::{TextRecognitionResult, TextRecognizer, TextRecognizerOptions};
+pub use textline_orientation::{
+    TextlineOrientationClassifier, TextlineOrientationClassifierOptions, TextlineOrientationResult,
+};
 
 pub use models::{
     ArtifactOrigin, ArtifactStatus, ConversionValidation, DownloadedModel, ModelArtifact,
