@@ -20,16 +20,31 @@ env:
 jobs:
   linux-cpu:
     name: Linux CPU
-    runs-on: ubuntu-24.04
-    container: archlinux:base-devel
+    runs-on: ubuntu-26.04
     timeout-minutes: 90
 
     steps:
       - name: Install system dependencies
-        run: >-
-          pacman -Syu --noconfirm --needed
-          actionlint clang cmake gettext git gstreamer gst-plugins-base-libs
-          gtk4 gtk4-layer-shell libadwaita pkgconf rustup shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            build-essential \
+            ca-certificates \
+            clang \
+            cmake \
+            curl \
+            gettext \
+            git \
+            gstreamer1.0-gl \
+            gstreamer1.0-pipewire \
+            gstreamer1.0-plugins-base \
+            libadwaita-1-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgtk-4-dev \
+            libgtk4-layer-shell-dev \
+            pkg-config \
+            shellcheck
 
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -39,6 +54,23 @@ jobs:
           rustup set profile minimal
           rustup toolchain install 1.92.0 --component clippy,rustfmt
           rustup default 1.92.0
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          cache-bin: "false"
+          shared-key: x86_64-unknown-linux-gnu-cpu
+
+      - name: Install actionlint
+        run: |
+          curl --fail --location --silent --show-error \
+            --output /tmp/actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          printf '%s  %s\n' \
+            8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 \
+            /tmp/actionlint.tar.gz | sha256sum --check
+          tar --extract --gzip --file /tmp/actionlint.tar.gz --directory /tmp actionlint
+          sudo install --mode 0755 /tmp/actionlint /usr/local/bin/actionlint
 
       - name: Validate workflows and scripts
         run: |

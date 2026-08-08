@@ -15,8 +15,7 @@ env:
 jobs:
   build:
     name: ${{ matrix.target }} / ${{ matrix.backend }}
-    runs-on: ubuntu-24.04
-    container: archlinux:base-devel
+    runs-on: ubuntu-26.04
     timeout-minutes: 90
     strategy:
       fail-fast: false
@@ -28,10 +27,25 @@ jobs:
 
     steps:
       - name: Install system dependencies
-        run: >-
-          pacman -Syu --noconfirm --needed
-          clang cmake gettext git gstreamer gst-plugins-base-libs gtk4
-          gtk4-layer-shell libadwaita pkgconf rustup
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            build-essential \
+            ca-certificates \
+            clang \
+            cmake \
+            curl \
+            gettext \
+            git \
+            gstreamer1.0-gl \
+            gstreamer1.0-pipewire \
+            gstreamer1.0-plugins-base \
+            libadwaita-1-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgtk-4-dev \
+            libgtk4-layer-shell-dev \
+            pkg-config
 
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -43,6 +57,12 @@ jobs:
           rustup set profile minimal
           rustup toolchain install 1.92.0 --component clippy,rustfmt
           rustup default 1.92.0
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          cache-bin: "false"
+          shared-key: ${{ matrix.target }}-${{ matrix.backend }}
 
       - name: Test the release source
         run: cargo test --workspace --all-targets --locked
