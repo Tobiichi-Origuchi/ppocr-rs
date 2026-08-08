@@ -55,10 +55,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Restore gettext cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.tool_cache }}/ppocr-rs/gettext-1.0
+          key: gettext-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/install-gettext.sh') }}
+
       - name: Install Rust-aware gettext extractor
         run: |
-          ./scripts/install-gettext.sh "$RUNNER_TEMP/gettext"
-          printf '%s\n' "$RUNNER_TEMP/gettext/bin" >> "$GITHUB_PATH"
+          gettext_prefix="$RUNNER_TOOL_CACHE/ppocr-rs/gettext-1.0"
+          ./scripts/install-gettext.sh "$gettext_prefix"
+          printf '%s/bin\n' "$gettext_prefix" >> "$GITHUB_PATH"
 
       - name: Install the pinned Rust toolchain
         run: |

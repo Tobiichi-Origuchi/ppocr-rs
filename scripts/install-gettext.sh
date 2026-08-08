@@ -9,12 +9,18 @@ if [[ $# -ne 1 || -z "$1" ]]; then
     exit 2
 fi
 
+readonly install_prefix=$1
+readonly cached_xgettext="$install_prefix/bin/xgettext"
+if [[ -x "$cached_xgettext" ]] && "$cached_xgettext" --help | grep -F 'Rust' >/dev/null; then
+    printf 'Using cached %s\n' "$("$cached_xgettext" --version | sed -n '1p')"
+    exit 0
+fi
+
 if command -v xgettext >/dev/null && xgettext --help | grep -F 'Rust' >/dev/null; then
     printf 'Using %s\n' "$(xgettext --version | sed -n '1p')"
     exit 0
 fi
 
-readonly install_prefix=$1
 build_root=$(mktemp -d)
 readonly build_root
 trap 'rm -rf -- "$build_root"' EXIT
