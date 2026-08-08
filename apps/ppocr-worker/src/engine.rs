@@ -4,7 +4,7 @@ use image::{DynamicImage, ImageFormat, RgbImage};
 use ort::ep::ExecutionProvider;
 use ppocr::{
     DetectionSizeLimit as CoreDetectionSizeLimit, GraphOptimizationLevel, ModelDownloader,
-    ModelDownloaderOptions, OcrPipeline, OcrPipelineOptions, OrtSessionOptions,
+    ModelDownloaderOptions, OcrPipeline, OcrPipelineOptions, OrtSessionOptions, PipelineBuildPhase,
     TextDetectorOptions,
 };
 use ppocr_app_protocol::{
@@ -14,7 +14,7 @@ use ppocr_app_protocol::{
     ProviderKind, Recognize, TextLine, Word,
 };
 
-use crate::server::{Engine, EngineError, EngineOutput};
+use crate::server::{Engine, EngineError, EngineOutput, EngineProgress, EngineProgressCallback};
 
 #[derive(Default)]
 pub struct OcrEngine {
@@ -26,7 +26,11 @@ impl Engine for OcrEngine {
         provider_capabilities()
     }
 
-    fn configure(&mut self, config: &PipelineConfig) -> Result<ProviderKind, EngineError> {
+    fn configure(
+        &mut self,
+        config: &PipelineConfig,
+        progress: EngineProgressCallback,
+    ) -> Result<ProviderKind, EngineError> {
         validate_pipeline_config(config)?;
         let provider = provider_kind(&config.provider);
         let downloader = ModelDownloader::new(ModelDownloaderOptions::default())
@@ -54,7 +58,28 @@ impl Engine for OcrEngine {
             Some(model) => builder.textline_orientation_model(model.clone()),
             None => builder.disable_textline_orientation(),
         };
-        self.pipeline = Some(builder.build().map_err(map_config_error)?);
+        let pipeline_progress = std::sync::Arc::new(move |event: ppocr::PipelineBuildProgress| {
+            progress(EngineProgress {
+                phase: match event.phase {
+                    PipelineBuildPhase::Downloading => {
+                        ppocr_app_protocol::ProgressPhase::PreparingModels
+                    }
+                    PipelineBuildPhase::Initializing => {
+                        ppocr_app_protocol::ProgressPhase::InitializingSessions
+                    }
+                },
+                model_index: event.model_index.try_into().unwrap_or(u32::MAX),
+                model_count: event.model_count.try_into().unwrap_or(u32::MAX),
+                model_id: event.model_id,
+                bytes_completed: event.bytes_completed,
+                total_bytes: event.total_bytes,
+            });
+        });
+        self.pipeline = Some(
+            builder
+                .build_with_progress(pipeline_progress)
+                .map_err(map_config_error)?,
+        );
         Ok(provider)
     }
 

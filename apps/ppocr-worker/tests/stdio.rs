@@ -68,12 +68,27 @@ fn configure(worker: &mut WorkerProcess, config: PipelineConfig) {
         configuration_id: 1,
         config,
     })));
-    assert!(matches!(worker.receive().message, Message::Progress(_)));
-    let response = worker.receive();
-    if let Message::RequestFailed(error) = &response.message {
-        panic!("worker configuration failed: {error:?}");
+    let mut saw_progress = false;
+    let mut saw_detailed_model_progress = false;
+    loop {
+        let response = worker.receive();
+        match response.message {
+            Message::Progress(progress) => {
+                saw_progress = true;
+                saw_detailed_model_progress |= progress.model_index.is_some()
+                    && progress.model_count.is_some()
+                    && progress.model_id.is_some()
+                    && (progress.bytes_completed.is_some()
+                        || progress.phase
+                            == ppocr_app_protocol::ProgressPhase::InitializingSessions);
+            }
+            Message::Configured(_) => break,
+            Message::RequestFailed(error) => panic!("worker configuration failed: {error:?}"),
+            message => panic!("unexpected configuration response: {message:?}"),
+        }
     }
-    assert!(matches!(response.message, Message::Configured(_)));
+    assert!(saw_progress);
+    assert!(saw_detailed_model_progress);
 }
 
 fn encoded_format(bytes: &[u8]) -> EncodedImageFormat {
@@ -107,7 +122,11 @@ fn full_pipeline_runs_over_stdio() {
     let bytes = fs::read(Path::new(&path)).unwrap();
     let mut worker = WorkerProcess::spawn();
     initialize(&mut worker);
-    configure(&mut worker, PipelineConfig::default());
+    let config = PipelineConfig {
+        provider: test_provider(),
+        ..PipelineConfig::default()
+    };
+    configure(&mut worker, config);
     let format = encoded_format(&bytes);
     worker.send(Frame::with_attachment(
         Message::Recognize(Recognize {
@@ -151,6 +170,16 @@ fn full_pipeline_runs_over_stdio() {
             .all(|line| line.words.is_some())
     );
     worker.shutdown(4);
+}
+
+fn test_provider() -> ppocr_app_protocol::ProviderConfig {
+    match std::env::var("PPOCR_TEST_PROVIDER").as_deref() {
+        Ok("cuda") => ppocr_app_protocol::ProviderConfig::Cuda { device_id: 0 },
+        Ok("webgpu:0") => ppocr_app_protocol::ProviderConfig::WebGpu { device_id: 0 },
+        Ok("webgpu:1") => ppocr_app_protocol::ProviderConfig::WebGpu { device_id: 1 },
+        Ok(value) => panic!("unsupported PPOCR_TEST_PROVIDER value: {value}"),
+        Err(_) => ppocr_app_protocol::ProviderConfig::Cpu,
+    }
 }
 
 #[test]

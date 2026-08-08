@@ -1,8 +1,12 @@
-use std::{cell::Cell, path::PathBuf, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    path::PathBuf,
+    rc::Rc,
+};
 
 use adw::prelude::*;
 
-use crate::config::{AppConfig, ThemePreference};
+use crate::config::{AppConfig, ShortcutConfig, ThemePreference};
 use crate::data::{
     DETECTION_MODELS, DOCUMENT_ORIENTATION_MODELS, DOCUMENT_RECTIFICATION_MODELS,
     RECOGNITION_MODELS, RUNTIME_PROVIDERS, TEXTLINE_ORIENTATION_MODELS,
@@ -25,6 +29,9 @@ pub struct SettingsState {
     pub keep_worker_warm: Cell<bool>,
     pub idle_timeout_minutes: Cell<f64>,
     pub theme: Cell<u32>,
+    pub immediate_processing: Cell<bool>,
+    pub screenshot_delay_ms: Cell<f64>,
+    pub shortcuts: RefCell<ShortcutConfig>,
     base_pipeline: PipelineConfig,
     config_path: Option<PathBuf>,
 }
@@ -95,6 +102,9 @@ impl SettingsState {
             keep_worker_warm: Cell::new(config.keep_worker_warm),
             idle_timeout_minutes: Cell::new(f64::from(config.idle_timeout_minutes)),
             theme: Cell::new(theme),
+            immediate_processing: Cell::new(config.immediate_processing),
+            screenshot_delay_ms: Cell::new(f64::from(config.screenshot_delay_ms.min(5_000))),
+            shortcuts: RefCell::new(config.shortcuts),
             base_pipeline: pipeline,
             config_path,
         }
@@ -152,6 +162,9 @@ impl SettingsState {
             keep_worker_warm: self.keep_worker_warm.get(),
             idle_timeout_minutes: self.idle_timeout_minutes.get().round() as u32,
             theme,
+            immediate_processing: self.immediate_processing.get(),
+            screenshot_delay_ms: self.screenshot_delay_ms.get().round() as u32,
+            shortcuts: self.shortcuts.borrow().clone(),
         };
         if let Err(error) = config.save(path) {
             eprintln!("failed to persist configuration: {error}");
@@ -174,6 +187,7 @@ fn selected_model(models: &[&str], selected: u32) -> String {
 }
 
 pub fn present_settings(
+    app: &adw::Application,
     parent: &adw::ApplicationWindow,
     state: Rc<SettingsState>,
     runtime_summary: &gtk::Label,
@@ -187,7 +201,7 @@ pub fn present_settings(
 
     dialog.add(&models_page(state.clone(), runtime_summary));
     dialog.add(&runtime_page(state.clone(), runtime_summary));
-    dialog.add(&interface_page(state));
+    dialog.add(&interface_page(app, state));
     dialog.present(Some(parent));
 }
 
@@ -350,6 +364,11 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     });
 
     let lifecycle = adw::PreferencesGroup::builder().title("识别进程").build();
+    let immediate = adw::SwitchRow::builder()
+        .title("立即处理")
+        .subtitle("打开、粘贴或截取图片后自动开始识别；默认关闭")
+        .active(state.immediate_processing.get())
+        .build();
     let keep_warm = adw::SwitchRow::builder()
         .title("保持识别进程常驻")
         .subtitle("减少连续识别时的模型加载等待")
@@ -361,9 +380,18 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     idle.set_value(state.idle_timeout_minutes.get());
     idle.set_digits(0);
     idle.set_sensitive(keep_warm.is_active());
+    lifecycle.add(&immediate);
     lifecycle.add(&keep_warm);
     lifecycle.add(&idle);
     page.add(&lifecycle);
+
+    let state_for_immediate = state.clone();
+    immediate.connect_active_notify(move |row| {
+        state_for_immediate
+            .immediate_processing
+            .set(row.is_active());
+        state_for_immediate.persist();
+    });
 
     let state_for_keep = state.clone();
     let idle_for_switch = idle.clone();
@@ -394,7 +422,7 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     page
 }
 
-fn interface_page(state: Rc<SettingsState>) -> adw::PreferencesPage {
+fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::PreferencesPage {
     let page = adw::PreferencesPage::builder()
         .name("interface")
         .title("界面")
@@ -412,23 +440,106 @@ fn interface_page(state: Rc<SettingsState>) -> adw::PreferencesPage {
     appearance.add(&theme);
     page.add(&appearance);
 
+    let state_for_theme = state.clone();
     theme.connect_selected_notify(move |row| {
-        state.theme.set(row.selected());
+        state_for_theme.theme.set(row.selected());
         let color_scheme = match row.selected() {
             1 => adw::ColorScheme::ForceLight,
             2 => adw::ColorScheme::ForceDark,
             _ => adw::ColorScheme::Default,
         };
         adw::StyleManager::default().set_color_scheme(color_scheme);
-        state.persist();
+        state_for_theme.persist();
     });
 
-    let shortcuts = adw::PreferencesGroup::builder().title("快捷键").build();
-    shortcuts.add(&shortcut_row("截图识别", "<Ctrl><Shift>O"));
-    shortcuts.add(&shortcut_row("打开图片", "<Ctrl>O"));
-    shortcuts.add(&shortcut_row("打开设置", "<Ctrl>comma"));
-    shortcuts.add(&shortcut_row("复制全部文本", "<Ctrl><Shift>C"));
+    let capture = adw::PreferencesGroup::builder()
+        .title("截图")
+        .description("区域和屏幕截图会在隐藏主窗口后等待桌面动画稳定，再获取物理画面")
+        .build();
+    let delay = adw::SpinRow::with_range(0.0, 5000.0, 50.0);
+    delay.set_title("截图稳定延迟");
+    delay.set_subtitle("毫秒；仅影响区域和屏幕截图，窗口截图不会隐藏主窗口");
+    delay.set_value(state.screenshot_delay_ms.get());
+    delay.set_digits(0);
+    capture.add(&delay);
+    page.add(&capture);
+    let state_for_delay = state.clone();
+    delay.connect_value_notify(move |row| {
+        state_for_delay.screenshot_delay_ms.set(row.value());
+        state_for_delay.persist();
+    });
+
+    let shortcuts = adw::PreferencesGroup::builder()
+        .title("快捷键")
+        .description("使用 GTK 加速键格式；留空可停用快捷键")
+        .build();
+    let configured = state.shortcuts.borrow().clone();
+    let open_image = shortcut_entry("打开图片", &configured.open_image);
+    let paste_image = shortcut_entry("粘贴图片", &configured.paste_image);
+    let capture_region = shortcut_entry("区域截图", &configured.capture_region);
+    let capture_screen = shortcut_entry("屏幕截图", &configured.capture_screen);
+    let capture_window = shortcut_entry("窗口截图", &configured.capture_window);
+    let start_processing = shortcut_entry("开始或重新处理", &configured.start_processing);
+    let copy_all = shortcut_entry("复制全部文本", &configured.copy_all);
+    let toggle_results = shortcut_entry("显示或隐藏结果", &configured.toggle_results);
+    let preferences = shortcut_entry("打开设置", &configured.preferences);
+    for row in [
+        &open_image,
+        &paste_image,
+        &capture_region,
+        &capture_screen,
+        &capture_window,
+        &start_processing,
+        &copy_all,
+        &toggle_results,
+        &preferences,
+    ] {
+        shortcuts.add(row);
+    }
+    let apply_row = adw::ActionRow::builder()
+        .title("应用快捷键")
+        .subtitle("例如 &lt;Primary&gt;V、&lt;Alt&gt;Print；相同组合不能重复")
+        .build();
+    let shortcut_status = gtk::Label::new(None);
+    shortcut_status.add_css_class("caption");
+    shortcut_status.add_css_class("dim-label");
+    let apply = gtk::Button::with_label("应用");
+    apply.set_valign(gtk::Align::Center);
+    apply.add_css_class("suggested-action");
+    apply_row.add_suffix(&shortcut_status);
+    apply_row.add_suffix(&apply);
+    shortcuts.add(&apply_row);
     page.add(&shortcuts);
+
+    let app = app.clone();
+    apply.connect_clicked(move |_| {
+        let updated = ShortcutConfig {
+            open_image: open_image.text().to_string(),
+            paste_image: paste_image.text().to_string(),
+            capture_region: capture_region.text().to_string(),
+            capture_screen: capture_screen.text().to_string(),
+            capture_window: capture_window.text().to_string(),
+            start_processing: start_processing.text().to_string(),
+            copy_all: copy_all.text().to_string(),
+            toggle_results: toggle_results.text().to_string(),
+            preferences: preferences.text().to_string(),
+        };
+        match validate_shortcuts(&updated) {
+            Ok(()) => {
+                state.shortcuts.replace(updated.clone());
+                state.persist();
+                apply_shortcuts(&app, &updated);
+                shortcut_status.remove_css_class("error");
+                shortcut_status.add_css_class("success");
+                shortcut_status.set_label("已应用");
+            }
+            Err(error) => {
+                shortcut_status.remove_css_class("success");
+                shortcut_status.add_css_class("error");
+                shortcut_status.set_label(&error);
+            }
+        }
+    });
 
     page
 }
@@ -479,11 +590,53 @@ fn add_optional_module(
     model.connect_selected_notify(move |row| on_selected(row.selected()));
 }
 
-fn shortcut_row(title: &str, accelerator: &str) -> adw::ActionRow {
-    let row = adw::ActionRow::builder().title(title).build();
-    let label = gtk::ShortcutLabel::new(accelerator);
-    row.add_suffix(&label);
-    row
+fn shortcut_entry(title: &str, accelerator: &str) -> adw::EntryRow {
+    adw::EntryRow::builder()
+        .title(title)
+        .text(accelerator)
+        .build()
+}
+
+pub fn apply_shortcuts(app: &adw::Application, shortcuts: &ShortcutConfig) {
+    for (action, accelerator) in shortcut_bindings(shortcuts) {
+        if accelerator.trim().is_empty() || gtk::accelerator_parse(accelerator).is_none() {
+            app.set_accels_for_action(action, &[]);
+        } else {
+            app.set_accels_for_action(action, &[accelerator]);
+        }
+    }
+}
+
+fn validate_shortcuts(shortcuts: &ShortcutConfig) -> Result<(), String> {
+    let mut used = std::collections::HashSet::new();
+    for (_, accelerator) in shortcut_bindings(shortcuts) {
+        let accelerator = accelerator.trim();
+        if accelerator.is_empty() {
+            continue;
+        }
+        let Some((key, modifiers)) = gtk::accelerator_parse(accelerator) else {
+            return Err(format!("无效：{accelerator}"));
+        };
+        let normalized = gtk::accelerator_name(key, modifiers).to_string();
+        if !used.insert(normalized) {
+            return Err(format!("快捷键重复：{accelerator}"));
+        }
+    }
+    Ok(())
+}
+
+fn shortcut_bindings(shortcuts: &ShortcutConfig) -> [(&'static str, &str); 9] {
+    [
+        ("win.open", &shortcuts.open_image),
+        ("win.paste", &shortcuts.paste_image),
+        ("win.capture-region", &shortcuts.capture_region),
+        ("win.capture-screen", &shortcuts.capture_screen),
+        ("win.capture-window", &shortcuts.capture_window),
+        ("win.process", &shortcuts.start_processing),
+        ("win.copy", &shortcuts.copy_all),
+        ("win.toggle-results", &shortcuts.toggle_results),
+        ("win.preferences", &shortcuts.preferences),
+    ]
 }
 
 pub fn update_runtime_summary(state: &SettingsState, label: &gtk::Label) {

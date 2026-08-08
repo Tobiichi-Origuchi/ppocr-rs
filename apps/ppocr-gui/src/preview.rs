@@ -19,15 +19,82 @@ pub struct PreviewPane {
     subtitle: gtk::Label,
     badge: gtk::Label,
     state: Rc<RefCell<PreviewState>>,
+    processing_overlay: gtk::CenterBox,
+    spinner: gtk::Spinner,
+    processing_label: gtk::Label,
+    progress_bar: gtk::ProgressBar,
 }
 
 #[derive(Default)]
 struct PreviewState {
-    image: Option<Pixbuf>,
+    original_image: Option<Pixbuf>,
+    processed_image: Option<Pixbuf>,
+    showing_processed: bool,
+    source_name: String,
     metadata: Option<OcrMetadata>,
 }
 
 impl PreviewPane {
+    pub fn set_source(
+        &self,
+        encoded_image: &[u8],
+        source_name: &str,
+    ) -> Result<(), gtk::glib::Error> {
+        let loader = gdk_pixbuf::PixbufLoader::new();
+        loader.write(encoded_image)?;
+        loader.close()?;
+        let image = loader.pixbuf().ok_or_else(|| {
+            gtk::glib::Error::new(
+                gdk_pixbuf::PixbufError::Failed,
+                "image decoder returned no preview",
+            )
+        })?;
+        self.subtitle.set_label(&format!(
+            "{}  ·  {} × {}",
+            source_name,
+            image.width(),
+            image.height()
+        ));
+        self.badge.set_label("等待处理");
+        self.badge.remove_css_class("accent");
+        self.badge.remove_css_class("error");
+        self.badge.add_css_class("dim-label");
+        self.selected_line.set(None);
+        self.state.replace(PreviewState {
+            original_image: Some(image),
+            processed_image: None,
+            showing_processed: false,
+            source_name: source_name.to_owned(),
+            metadata: None,
+        });
+        self.spinner.stop();
+        self.processing_overlay.set_visible(false);
+        self.progress_bar.set_visible(false);
+        self.drawing_area.queue_draw();
+        Ok(())
+    }
+
+    pub fn set_processing(&self) {
+        self.badge.set_label("正在处理");
+        self.badge.remove_css_class("accent");
+        self.badge.remove_css_class("error");
+        self.badge.add_css_class("dim-label");
+        self.processing_label.set_label("正在准备识别…");
+        self.progress_bar.set_visible(false);
+        self.spinner.start();
+        self.processing_overlay.set_visible(true);
+    }
+
+    pub fn set_progress(&self, message: &str, fraction: Option<f64>) {
+        self.processing_label.set_label(message);
+        if let Some(fraction) = fraction {
+            self.progress_bar.set_fraction(fraction.clamp(0.0, 1.0));
+            self.progress_bar.set_visible(true);
+        } else {
+            self.progress_bar.set_visible(false);
+        }
+    }
+
     pub fn set_result(
         &self,
         processed_png: Vec<u8>,
@@ -41,18 +108,35 @@ impl PreviewPane {
         ));
         self.badge.set_label("识别完成");
         self.badge.remove_css_class("dim-label");
+        self.badge.remove_css_class("error");
         self.badge.add_css_class("accent");
+        self.spinner.stop();
+        self.processing_overlay.set_visible(false);
         self.selected_line.set(None);
-        self.state.replace(PreviewState {
-            image: Some(image),
-            metadata: Some(metadata),
-        });
+        let mut state = self.state.borrow_mut();
+        state.processed_image = Some(image);
+        state.showing_processed = true;
+        state.source_name = source_name.to_owned();
+        state.metadata = Some(metadata);
+        drop(state);
         self.drawing_area.queue_draw();
         Ok(())
     }
+
+    pub fn set_failed(&self) {
+        self.badge.set_label("处理失败");
+        self.badge.remove_css_class("accent");
+        self.badge.add_css_class("error");
+        self.spinner.stop();
+        self.processing_overlay.set_visible(false);
+        self.progress_bar.set_visible(false);
+    }
 }
 
-pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> PreviewPane {
+pub fn build_preview(
+    on_line_selected: impl Fn(Option<usize>) + 'static,
+    on_image_toggled: impl Fn(bool) + 'static,
+) -> PreviewPane {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
     root.add_css_class("card");
     root.set_overflow(gtk::Overflow::Hidden);
@@ -98,6 +182,7 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
         .content_height(760)
         .hexpand(true)
         .vexpand(true)
+        .focusable(true)
         .build();
     drawing_area.add_css_class("preview-canvas");
     drawing_area.set_accessible_role(gtk::AccessibleRole::Img);
@@ -125,13 +210,49 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
     let page_for_click = page_rect.clone();
     let drawing_for_click = drawing_area.clone();
     let state_for_click = state.clone();
+    let badge_for_click = badge.clone();
+    let subtitle_for_click = subtitle.clone();
     let gesture = gtk::GestureClick::new();
-    gesture.connect_pressed(move |_, _, x, y| {
+    gesture.connect_pressed(move |_, presses, x, y| {
+        drawing_for_click.grab_focus();
+        if presses == 2 {
+            let (showing_processed, source_name, width, height) = {
+                let mut state = state_for_click.borrow_mut();
+                if state.processed_image.is_none() {
+                    return;
+                }
+                state.showing_processed = !state.showing_processed;
+                let image = if state.showing_processed {
+                    state.processed_image.as_ref()
+                } else {
+                    state.original_image.as_ref()
+                }
+                .expect("an available preview image was checked above");
+                (
+                    state.showing_processed,
+                    state.source_name.clone(),
+                    image.width(),
+                    image.height(),
+                )
+            };
+            subtitle_for_click.set_label(&format!("{source_name}  ·  {width} × {height}"));
+            badge_for_click.set_label(if showing_processed {
+                "处理后图"
+            } else {
+                "原图"
+            });
+            selected_for_click.set(None);
+            on_line_selected(None);
+            on_image_toggled(showing_processed);
+            drawing_for_click.queue_draw();
+            return;
+        }
         let page = page_for_click.get();
-        let selected = state_for_click
-            .borrow()
-            .metadata
-            .as_ref()
+        let state = state_for_click.borrow();
+        let selected = state
+            .showing_processed
+            .then_some(state.metadata.as_ref())
+            .flatten()
             .and_then(|metadata| line_at(metadata, page, x, y));
         selected_for_click.set(selected);
         on_line_selected(selected);
@@ -147,7 +268,35 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
         .vexpand(true)
         .child(&drawing_area)
         .build();
-    root.append(&scroller);
+    let image_overlay = gtk::Overlay::new();
+    image_overlay.set_hexpand(true);
+    image_overlay.set_vexpand(true);
+    image_overlay.set_child(Some(&scroller));
+
+    let spinner = gtk::Spinner::new();
+    spinner.set_size_request(34, 34);
+    let processing_label = gtk::Label::new(Some("正在处理图片…"));
+    processing_label.add_css_class("processing-label");
+    processing_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+    processing_label.set_max_width_chars(64);
+    let progress_bar = gtk::ProgressBar::new();
+    progress_bar.set_size_request(360, -1);
+    progress_bar.set_visible(false);
+    let processing_content = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    processing_content.set_halign(gtk::Align::Center);
+    processing_content.set_valign(gtk::Align::Center);
+    processing_content.append(&spinner);
+    processing_content.append(&processing_label);
+    processing_content.append(&progress_bar);
+
+    let processing_overlay = gtk::CenterBox::new();
+    processing_overlay.add_css_class("processing-overlay");
+    processing_overlay.set_halign(gtk::Align::Fill);
+    processing_overlay.set_valign(gtk::Align::Fill);
+    processing_overlay.set_center_widget(Some(&processing_content));
+    processing_overlay.set_visible(false);
+    image_overlay.add_overlay(&processing_overlay);
+    root.append(&image_overlay);
 
     let controls = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     controls.set_margin_top(10);
@@ -233,6 +382,10 @@ pub fn build_preview(on_line_selected: impl Fn(Option<usize>) + 'static) -> Prev
         subtitle,
         badge,
         state,
+        processing_overlay,
+        spinner,
+        processing_label,
+        progress_bar,
     }
 }
 
@@ -255,7 +408,12 @@ fn draw_preview(
     set_source_rgba(cr, canvas);
     let _ = cr.paint();
 
-    let Some(image) = state.image.as_ref() else {
+    let image = if state.showing_processed {
+        state.processed_image.as_ref()
+    } else {
+        state.original_image.as_ref()
+    };
+    let Some(image) = image else {
         page_out.set(RectF::default());
         draw_empty_state(cr, width, height);
         return;
@@ -298,7 +456,10 @@ fn draw_preview(
     cr.set_line_width(1.0);
     let _ = cr.stroke();
 
-    if show_boxes && let Some(metadata) = state.metadata.as_ref() {
+    if state.showing_processed
+        && show_boxes
+        && let Some(metadata) = state.metadata.as_ref()
+    {
         draw_text_boxes(cr, page, metadata, selected);
     }
 }

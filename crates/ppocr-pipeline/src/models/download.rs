@@ -3,8 +3,10 @@ use std::ffi::OsString;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use hf_hub::HFClient;
+use hf_hub::progress::{DownloadEvent, ProgressEvent, ProgressHandler};
 use sha1::Sha1;
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
@@ -28,6 +30,47 @@ pub struct ModelDownloader {
     client: hf_hub::HFClientSync,
     options: ModelDownloaderOptions,
     cache_dir: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModelDownloadProgress {
+    pub model_id: String,
+    pub bytes_completed: u64,
+    pub total_bytes: u64,
+}
+
+pub type ModelDownloadProgressCallback = Arc<dyn Fn(ModelDownloadProgress) + Send + Sync>;
+
+struct DownloadProgressHandler {
+    model_id: String,
+    completed_before_file: u64,
+    file_size: u64,
+    total_bytes: u64,
+    callback: ModelDownloadProgressCallback,
+}
+
+impl ProgressHandler for DownloadProgressHandler {
+    fn on_progress(&self, event: &ProgressEvent) {
+        let file_completed = match event {
+            ProgressEvent::Download(DownloadEvent::Progress { files }) => {
+                files.iter().map(|file| file.bytes_completed).max()
+            }
+            ProgressEvent::Download(DownloadEvent::AggregateProgress {
+                bytes_completed, ..
+            }) => Some(*bytes_completed),
+            ProgressEvent::Download(DownloadEvent::Complete) => Some(self.file_size),
+            _ => None,
+        };
+        if let Some(file_completed) = file_completed {
+            (self.callback)(ModelDownloadProgress {
+                model_id: self.model_id.clone(),
+                bytes_completed: self
+                    .completed_before_file
+                    .saturating_add(file_completed.min(self.file_size)),
+                total_bytes: self.total_bytes,
+            });
+        }
+    }
 }
 
 impl std::fmt::Debug for ModelDownloader {
@@ -65,6 +108,14 @@ impl ModelDownloader {
     /// This calls `download_file` for each manifest-declared file. It never uses
     /// `snapshot_download` and therefore cannot fetch unrelated models or files.
     pub fn download(&self, model_id: &str) -> Result<DownloadedModel, ModelDownloadError> {
+        self.download_with_progress(model_id, None)
+    }
+
+    pub fn download_with_progress(
+        &self,
+        model_id: &str,
+        progress: Option<ModelDownloadProgressCallback>,
+    ) -> Result<DownloadedModel, ModelDownloadError> {
         let spec = manifest()
             .get(model_id)
             .ok_or_else(|| ModelDownloadError::UnknownModel(model_id.to_owned()))?;
@@ -93,17 +144,51 @@ impl ModelDownloader {
         })?;
         let repository = self.client.model(owner, repository_name);
 
+        let total_bytes = spec
+            .artifact
+            .required_files
+            .iter()
+            .map(|file| file.size)
+            .sum();
+        let mut completed_bytes = 0_u64;
         let mut files = BTreeMap::new();
         for expected in &spec.artifact.required_files {
-            let path = repository
+            if let Some(callback) = progress.as_ref() {
+                callback(ModelDownloadProgress {
+                    model_id: model_id.to_owned(),
+                    bytes_completed: completed_bytes,
+                    total_bytes,
+                });
+            }
+            let request = repository
                 .download_file()
                 .filename(expected.path.clone())
                 .revision(revision.to_owned())
                 .force_download(self.options.force_download)
-                .local_files_only(self.options.local_files_only)
-                .send()?;
+                .local_files_only(self.options.local_files_only);
+            let path = if let Some(callback) = progress.as_ref() {
+                request
+                    .progress(DownloadProgressHandler {
+                        model_id: model_id.to_owned(),
+                        completed_before_file: completed_bytes,
+                        file_size: expected.size,
+                        total_bytes,
+                        callback: callback.clone(),
+                    })
+                    .send()?
+            } else {
+                request.send()?
+            };
             verify_file(model_id, expected, &path)?;
             files.insert(expected.path.clone(), path);
+            completed_bytes = completed_bytes.saturating_add(expected.size);
+            if let Some(callback) = progress.as_ref() {
+                callback(ModelDownloadProgress {
+                    model_id: model_id.to_owned(),
+                    bytes_completed: completed_bytes,
+                    total_bytes,
+                });
+            }
         }
 
         let onnx_path = files.get("inference.onnx").cloned().ok_or_else(|| {
@@ -323,6 +408,31 @@ pub enum ModelDownloadError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn download_progress_combines_completed_files_and_current_file() {
+        let received = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let received_for_callback = received.clone();
+        let handler = DownloadProgressHandler {
+            model_id: "model".to_owned(),
+            completed_before_file: 100,
+            file_size: 400,
+            total_bytes: 500,
+            callback: Arc::new(move |progress| {
+                received_for_callback.lock().unwrap().push(progress);
+            }),
+        };
+        handler.on_progress(&ProgressEvent::Download(DownloadEvent::AggregateProgress {
+            bytes_completed: 150,
+            total_bytes: 400,
+            bytes_per_sec: None,
+        }));
+        handler.on_progress(&ProgressEvent::Download(DownloadEvent::Complete));
+        let received = received.lock().unwrap();
+        assert_eq!(received[0].bytes_completed, 250);
+        assert_eq!(received[0].total_bytes, 500);
+        assert_eq!(received[1].bytes_completed, 500);
+    }
 
     #[test]
     fn xdg_cache_is_resolved_explicitly() {

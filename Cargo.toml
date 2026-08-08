@@ -4,5 +4,6 @@ members = [
     "apps/ppocr-worker",
     "crates/ppocr-app-protocol",
     "crates/ppocr-pipeline",
+    "crates/ppocr-screenshot",
 ]
 resolver = "3"

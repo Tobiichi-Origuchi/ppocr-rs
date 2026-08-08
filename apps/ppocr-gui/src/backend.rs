@@ -10,8 +10,8 @@ use std::{
 
 use ppocr_app_protocol::{
     Configure, EncodedImageFormat, Frame, Initialize, Message, PipelineConfig,
-    ProcessedImagePolicy, RecognitionResult, Recognize, RequestFailed, Shutdown, WorkerHello,
-    read_frame, write_frame,
+    ProcessedImagePolicy, Progress, RecognitionResult, Recognize, RequestFailed, Shutdown,
+    WorkerHello, read_frame, write_frame,
 };
 use thiserror::Error;
 
@@ -26,6 +26,7 @@ pub struct ImageJob {
 
 pub enum BackendEvent {
     Status(String),
+    Progress(Progress),
     Capabilities(WorkerHello),
     Result {
         source_name: String,
@@ -93,6 +94,7 @@ impl Backend {
         {
             session.keep_worker_warm = job.keep_worker_warm;
             session.idle_timeout_minutes = job.idle_timeout_minutes;
+            session.accept_result = true;
             session.job = Some(self.active_job(job));
             let frame = recognize_frame(session);
             session.stage = SessionStage::Recognizing;
@@ -126,6 +128,13 @@ impl Backend {
             let _ = session.client.send(Frame::new(Message::Shutdown(Shutdown {
                 request_id: self.id(),
             })));
+        }
+    }
+
+    pub fn invalidate(&self) {
+        self.pending.take();
+        if let Some(session) = self.session.borrow_mut().as_mut() {
+            session.accept_result = false;
         }
     }
 
@@ -201,7 +210,7 @@ impl Backend {
                     .session
                     .borrow()
                     .as_ref()
-                    .is_some_and(|session| session.token == token)
+                    .is_some_and(|session| session.token == token && session.accept_result)
                 {
                     (self.callback)(BackendEvent::Error(message));
                 }
@@ -252,7 +261,7 @@ impl Backend {
                 self.send(frame);
             }
             Message::Progress(progress) => {
-                (self.callback)(BackendEvent::Status(progress.message));
+                (self.callback)(BackendEvent::Progress(progress));
             }
             Message::RecognitionResult(result) => {
                 let source_name = session
@@ -281,7 +290,9 @@ impl Backend {
             }
             Message::RequestFailed(error) => {
                 let message = format_request_error(&error);
-                (self.callback)(BackendEvent::Error(message));
+                if session.accept_result {
+                    (self.callback)(BackendEvent::Error(message));
+                }
                 if matches!(
                     error.code,
                     ppocr_app_protocol::ErrorCode::ConfigurationRequiresRestart

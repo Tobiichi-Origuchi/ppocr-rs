@@ -54,6 +54,7 @@ pub use image::RgbImage;
 pub use pipeline::{
     OcrImageSize, OcrPipeline, OcrPipelineBuilder, OcrPipelineModelIds, OcrPipelineModelSettings,
     OcrPipelineOptions, OcrPipelinePool, OcrPipelineResult, OcrTextLine, OcrWord,
+    PipelineBuildPhase, PipelineBuildProgress, PipelineBuildProgressCallback,
 };
 pub use runtime::{
     ExecutionProviderDispatch, GraphOptimizationLevel, OrtSessionOptions, execution_providers,
@@ -69,6 +70,7 @@ pub use textline_orientation::{
 
 pub use models::{
     ArtifactOrigin, ArtifactStatus, ConversionValidation, DownloadedModel, ModelArtifact,
-    ModelConversion, ModelDownloadError, ModelDownloader, ModelDownloaderOptions, ModelFile,
-    ModelKind, ModelManifest, ModelSpec, manifest, resolve_hf_hub_cache_dir,
+    ModelConversion, ModelDownloadError, ModelDownloadProgress, ModelDownloadProgressCallback,
+    ModelDownloader, ModelDownloaderOptions, ModelFile, ModelKind, ModelManifest, ModelSpec,
+    manifest, resolve_hf_hub_cache_dir,
 };

@@ -235,7 +235,7 @@ mod tests {
         assert_eq!(&bytes[6..8], &ATTACHMENT_FLAG.to_le_bytes());
         assert_eq!(u64::from_le_bytes(bytes[12..20].try_into().unwrap()), 4);
         assert!(String::from_utf8_lossy(&bytes[HEADER_LEN..]).contains("request_id"));
-        assert_eq!(PROTOCOL_MINOR, 0);
+        assert_eq!(PROTOCOL_MINOR, 1);
     }
 
     #[test]

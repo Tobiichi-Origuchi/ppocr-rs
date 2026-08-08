@@ -41,9 +41,25 @@ pub struct EngineOutput {
     pub processed_png: Vec<u8>,
 }
 
+#[derive(Debug, Clone)]
+pub struct EngineProgress {
+    pub phase: ProgressPhase,
+    pub model_index: u32,
+    pub model_count: u32,
+    pub model_id: String,
+    pub bytes_completed: Option<u64>,
+    pub total_bytes: Option<u64>,
+}
+
+pub type EngineProgressCallback = Arc<dyn Fn(EngineProgress) + Send + Sync>;
+
 pub trait Engine {
     fn capabilities(&self) -> Vec<ProviderCapability>;
-    fn configure(&mut self, config: &PipelineConfig) -> Result<ProviderKind, EngineError>;
+    fn configure(
+        &mut self,
+        config: &PipelineConfig,
+        progress: EngineProgressCallback,
+    ) -> Result<ProviderKind, EngineError>;
     fn recognize(
         &mut self,
         request: &Recognize,
@@ -66,7 +82,7 @@ pub fn run_stdio(engine: impl Engine + 'static) -> Result<(), ServerError> {
         .stack_size(512 * 1024)
         .spawn(move || read_stdin(incoming_tx, cancelled_for_reader))?;
 
-    let mut stdout = io::stdout().lock();
+    let stdout = Arc::new(Mutex::new(io::stdout()));
     let hello = WorkerHello {
         worker_version: env!("CARGO_PKG_VERSION").to_owned(),
         target_os: std::env::consts::OS.to_owned(),
@@ -75,9 +91,15 @@ pub fn run_stdio(engine: impl Engine + 'static) -> Result<(), ServerError> {
         limits: Limits::DEFAULT.protocol_limits(),
         providers: engine.capabilities(),
     };
-    write_frame(&mut stdout, &Frame::new(Message::WorkerHello(hello)))?;
+    write_stdout_frame(&stdout, &Frame::new(Message::WorkerHello(hello)))?;
 
-    let mut machine = WorkerMachine::with_cancelled_jobs(engine, cancelled_jobs);
+    let stdout_for_events = stdout.clone();
+    let event_sink: Arc<dyn Fn(Frame) + Send + Sync> = Arc::new(move |frame| {
+        if let Err(error) = write_stdout_frame(&stdout_for_events, &frame) {
+            eprintln!("ppocr-worker failed to report progress: {error}");
+        }
+    });
+    let mut machine = WorkerMachine::with_cancelled_jobs(engine, cancelled_jobs, event_sink);
     loop {
         let incoming = receive(
             &incoming_rx,
@@ -92,7 +114,7 @@ pub fn run_stdio(engine: impl Engine + 'static) -> Result<(), ServerError> {
             Incoming::Frame(frame) => {
                 let outcome = machine.handle(*frame);
                 for response in outcome.responses {
-                    write_frame(&mut stdout, &response)?;
+                    write_stdout_frame(&stdout, &response)?;
                 }
                 if outcome.exit {
                     break;
@@ -104,6 +126,13 @@ pub fn run_stdio(engine: impl Engine + 'static) -> Result<(), ServerError> {
     }
     drop(incoming_rx);
     Ok(())
+}
+
+fn write_stdout_frame(stdout: &Arc<Mutex<io::Stdout>>, frame: &Frame) -> Result<(), CodecError> {
+    let mut stdout = stdout
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    write_frame(&mut *stdout, frame)
 }
 
 fn read_stdin(sender: SyncSender<Incoming>, cancelled_jobs: Arc<Mutex<HashSet<u64>>>) {
@@ -167,21 +196,31 @@ struct WorkerMachine<E> {
     idle_timeout: Option<Duration>,
     configured: Option<(u64, PipelineConfig, ProviderKind)>,
     cancelled_jobs: Arc<Mutex<HashSet<u64>>>,
+    event_sink: Arc<dyn Fn(Frame) + Send + Sync>,
 }
 
 impl<E: Engine> WorkerMachine<E> {
     #[cfg(test)]
     fn new(engine: E) -> Self {
-        Self::with_cancelled_jobs(engine, Arc::new(Mutex::new(HashSet::new())))
+        Self::with_cancelled_jobs(
+            engine,
+            Arc::new(Mutex::new(HashSet::new())),
+            Arc::new(|_| {}),
+        )
     }
 
-    fn with_cancelled_jobs(engine: E, cancelled_jobs: Arc<Mutex<HashSet<u64>>>) -> Self {
+    fn with_cancelled_jobs(
+        engine: E,
+        cancelled_jobs: Arc<Mutex<HashSet<u64>>>,
+        event_sink: Arc<dyn Fn(Frame) + Send + Sync>,
+    ) -> Self {
         Self {
             engine,
             initialized: false,
             idle_timeout: None,
             configured: None,
             cancelled_jobs,
+            event_sink,
         }
     }
 
@@ -284,13 +323,26 @@ impl<E: Engine> WorkerMachine<E> {
             ));
         }
 
-        let mut responses = vec![Frame::new(Message::Progress(Progress {
+        (self.event_sink)(Frame::new(Message::Progress(Progress {
             request_id: request.request_id,
             job_id: None,
             phase: ProgressPhase::PreparingModels,
             message: "正在准备所选模型".to_owned(),
-        }))];
-        match self.engine.configure(&request.config) {
+            model_index: None,
+            model_count: None,
+            model_id: None,
+            bytes_completed: None,
+            total_bytes: None,
+        })));
+        let mut responses = Vec::new();
+        let event_sink = self.event_sink.clone();
+        let request_id = request.request_id;
+        let engine_progress: EngineProgressCallback = Arc::new(move |progress| {
+            event_sink(Frame::new(Message::Progress(protocol_progress(
+                request_id, progress,
+            ))));
+        });
+        match self.engine.configure(&request.config, engine_progress) {
             Ok(provider) => {
                 self.configured = Some((request.configuration_id, request.config, provider));
                 responses.push(Frame::new(Message::Configured(Configured {
@@ -350,6 +402,11 @@ impl<E: Engine> WorkerMachine<E> {
             job_id: Some(request.job_id),
             phase: ProgressPhase::Decoding,
             message: "正在解码图片".to_owned(),
+            model_index: None,
+            model_count: None,
+            model_id: None,
+            bytes_completed: None,
+            total_bytes: None,
         }))];
         match self.engine.recognize(&request, &attachment) {
             Ok(output) => {
@@ -440,6 +497,48 @@ fn engine_failure(request_id: Option<u64>, job_id: Option<u64>, error: EngineErr
     )
 }
 
+fn protocol_progress(request_id: u64, progress: EngineProgress) -> Progress {
+    let message = match (
+        progress.phase,
+        progress.bytes_completed,
+        progress.total_bytes,
+    ) {
+        (ProgressPhase::PreparingModels, Some(done), Some(total)) => format!(
+            "正在下载模型（{}/{}）{}/{} {}",
+            progress.model_index,
+            progress.model_count,
+            human_bytes(done),
+            human_bytes(total),
+            progress.model_id
+        ),
+        (ProgressPhase::InitializingSessions, _, _) => format!(
+            "正在加载模型（{}/{}）{}",
+            progress.model_index, progress.model_count, progress.model_id
+        ),
+        _ => progress.model_id.clone(),
+    };
+    Progress {
+        request_id,
+        job_id: None,
+        phase: progress.phase,
+        message,
+        model_index: Some(progress.model_index),
+        model_count: Some(progress.model_count),
+        model_id: Some(progress.model_id),
+        bytes_completed: progress.bytes_completed,
+        total_bytes: progress.total_bytes,
+    }
+}
+
+fn human_bytes(bytes: u64) -> String {
+    const MIB: f64 = 1024.0 * 1024.0;
+    if bytes < 1024 * 1024 {
+        format!("{:.1} KiB", bytes as f64 / 1024.0)
+    } else {
+        format!("{:.1} MiB", bytes as f64 / MIB)
+    }
+}
+
 fn request_id(message: &Message) -> Option<u64> {
     match message {
         Message::Ready(value) => Some(value.request_id),
@@ -481,7 +580,11 @@ mod tests {
             Vec::new()
         }
 
-        fn configure(&mut self, _: &PipelineConfig) -> Result<ProviderKind, EngineError> {
+        fn configure(
+            &mut self,
+            _: &PipelineConfig,
+            _: EngineProgressCallback,
+        ) -> Result<ProviderKind, EngineError> {
             self.configure_count += 1;
             Ok(ProviderKind::Cpu)
         }
@@ -631,5 +734,26 @@ mod tests {
             ..PipelineConfig::default()
         };
         assert_eq!(config.provider, ProviderConfig::Cpu);
+    }
+
+    #[test]
+    fn model_progress_contains_position_bytes_and_full_model_id() {
+        let progress = protocol_progress(
+            7,
+            EngineProgress {
+                phase: ProgressPhase::PreparingModels,
+                model_index: 1,
+                model_count: 5,
+                model_id: "PP-OCRv6_mobile_rec".to_owned(),
+                bytes_completed: Some(11_943_936),
+                total_bytes: Some(53_897_626),
+            },
+        );
+        assert_eq!(progress.model_index, Some(1));
+        assert_eq!(progress.model_count, Some(5));
+        assert_eq!(progress.model_id.as_deref(), Some("PP-OCRv6_mobile_rec"));
+        assert!(progress.message.contains("（1/5）"));
+        assert!(progress.message.contains("PP-OCRv6_mobile_rec"));
+        assert!(progress.message.contains("MiB"));
     }
 }

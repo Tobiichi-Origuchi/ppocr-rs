@@ -1,4 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
@@ -10,6 +13,63 @@ use crate::{
     preview::{self, PreviewPane},
     settings::{self, SettingsState},
 };
+use ppocr_screenshot::{CaptureKind, CaptureOutcome};
+
+thread_local! {
+    static ACTIVE_TOAST: RefCell<Option<adw::Toast>> = const { RefCell::new(None) };
+}
+
+#[derive(Clone)]
+struct LoadedDocument {
+    source_name: String,
+    bytes: Vec<u8>,
+    format: ppocr_app_protocol::EncodedImageFormat,
+}
+
+struct DocumentState {
+    loaded: RefCell<Option<LoadedDocument>>,
+    processing: Cell<bool>,
+    has_result: Cell<bool>,
+    process_action: gio::SimpleAction,
+    process_button: RefCell<Option<gtk::Button>>,
+    clear_results: RefCell<Option<Box<dyn Fn()>>>,
+}
+
+impl DocumentState {
+    fn new() -> Rc<Self> {
+        let process_action = gio::SimpleAction::new("process", None);
+        process_action.set_enabled(false);
+        Rc::new(Self {
+            loaded: RefCell::new(None),
+            processing: Cell::new(false),
+            has_result: Cell::new(false),
+            process_action,
+            process_button: RefCell::new(None),
+            clear_results: RefCell::new(None),
+        })
+    }
+
+    fn set_processing(&self, processing: bool) {
+        self.processing.set(processing);
+        self.process_action
+            .set_enabled(!processing && self.loaded.borrow().is_some());
+        if let Some(button) = self.process_button.borrow().as_ref() {
+            button.set_label(if processing {
+                "正在处理"
+            } else if self.has_result.get() {
+                "重新处理"
+            } else {
+                "开始处理"
+            });
+        }
+    }
+
+    fn clear_results(&self) {
+        if let Some(clear) = self.clear_results.borrow().as_ref() {
+            clear();
+        }
+    }
+}
 
 pub fn build_ui(app: &adw::Application) {
     install_css();
@@ -25,6 +85,8 @@ pub fn build_ui(app: &adw::Application) {
 
     let (loaded_settings, config_warning) = SettingsState::load();
     let settings_state = Rc::new(loaded_settings);
+    let document_state = DocumentState::new();
+    window.add_action(&document_state.process_action);
     apply_theme(settings_state.theme.get());
 
     let toolbar_view = adw::ToolbarView::new();
@@ -34,20 +96,50 @@ pub fn build_ui(app: &adw::Application) {
     settings::update_runtime_summary(&settings_state, &runtime_summary);
 
     let results = build_results(&toast_overlay, &status_text);
+    let results_to_clear = results.clone();
+    document_state
+        .clear_results
+        .replace(Some(Box::new(move || results_to_clear.clear())));
     let list_for_preview = results.line_list.clone();
+    let scroller_for_preview = results.line_scroller.clone();
     let stack_for_preview = results.stack.clone();
     let status_for_preview = status_text.clone();
-    let preview = preview::build_preview(move |selected| {
-        if let Some(index) = selected {
-            if let Some(row) = list_for_preview.row_at_index(index as i32) {
-                list_for_preview.select_row(Some(&row));
-                stack_for_preview.set_visible_child_name("lines");
-                status_for_preview.set_label(&format!("已选择文本行 {}", index + 1));
+    let toasts_for_toggle = toast_overlay.clone();
+    let status_for_toggle = status_text.clone();
+    let preview = preview::build_preview(
+        move |selected| {
+            if let Some(index) = selected {
+                if let Some(row) = list_for_preview.row_at_index(index as i32) {
+                    list_for_preview.select_row(Some(&row));
+                    stack_for_preview.set_visible_child_name("lines");
+                    row.grab_focus();
+                    let row_for_scroll = row.clone();
+                    let list_for_scroll = list_for_preview.clone();
+                    let scroller_for_scroll = scroller_for_preview.clone();
+                    glib::idle_add_local_once(move || {
+                        if let Some(bounds) = row_for_scroll.compute_bounds(&list_for_scroll) {
+                            scroller_for_scroll.vadjustment().clamp_page(
+                                f64::from(bounds.y()),
+                                f64::from(bounds.y() + bounds.height()),
+                            );
+                        }
+                    });
+                    status_for_preview.set_label(&format!("已选择文本行 {}", index + 1));
+                }
+            } else {
+                list_for_preview.unselect_all();
             }
-        } else {
-            list_for_preview.unselect_all();
-        }
-    });
+        },
+        move |showing_processed| {
+            let message = if showing_processed {
+                "已切换到处理后图"
+            } else {
+                "已切换到原图"
+            };
+            status_for_toggle.set_label(message);
+            add_toast(&toasts_for_toggle, message);
+        },
+    );
 
     let selected_for_results = preview.selected_line.clone();
     let drawing_for_results = preview.drawing_area.clone();
@@ -67,6 +159,7 @@ pub fn build_ui(app: &adw::Application) {
         &toast_overlay,
         &status_text,
         &runtime_summary,
+        document_state.clone(),
     );
 
     preview.root.set_margin_end(12);
@@ -119,9 +212,11 @@ pub fn build_ui(app: &adw::Application) {
         &status_text,
         &runtime_summary,
         &results,
+        &preview,
         settings_state.clone(),
         &split_view,
         backend.clone(),
+        document_state.clone(),
     );
     toolbar_view.add_top_bar(&header);
 
@@ -144,6 +239,8 @@ pub fn build_ui(app: &adw::Application) {
             gio::File::for_path(path),
             backend,
             settings_state,
+            preview,
+            document_state,
             &toast_overlay,
             &status_text,
         );
@@ -156,14 +253,30 @@ fn build_backend(
     toasts: &adw::ToastOverlay,
     status: &gtk::Label,
     runtime_summary: &gtk::Label,
+    document: Rc<DocumentState>,
 ) -> Rc<Backend> {
     let preview = preview.clone();
     let results = results.clone();
     let toasts = toasts.clone();
     let status = status.clone();
     let runtime_summary = runtime_summary.clone();
+    let document_for_events = document;
     Backend::new(move |event| match event {
-        BackendEvent::Status(message) => status.set_label(&message),
+        BackendEvent::Status(message) => {
+            status.set_label(&message);
+            if document_for_events.processing.get() {
+                preview.set_progress(&message, None);
+            }
+        }
+        BackendEvent::Progress(progress) => {
+            let fraction = progress
+                .bytes_completed
+                .zip(progress.total_bytes)
+                .filter(|(_, total)| *total > 0)
+                .map(|(done, total)| done as f64 / total as f64);
+            preview.set_progress(&progress.message, fraction);
+            status.set_label(&progress.message);
+        }
         BackendEvent::Capabilities(hello) => {
             let available = hello
                 .providers
@@ -181,6 +294,8 @@ fn build_backend(
             result,
             processed_png,
         } => {
+            document_for_events.has_result.set(true);
+            document_for_events.set_processing(false);
             results.set_metadata(&result.metadata);
             let model = result.metadata.model_ids.text_recognition.clone();
             let line_count = result.metadata.text_lines.len();
@@ -200,6 +315,8 @@ fn build_backend(
             }
         }
         BackendEvent::Error(message) => {
+            document_for_events.set_processing(false);
+            preview.set_failed();
             status.set_label("识别失败");
             add_toast(&toasts, &message);
         }
@@ -211,6 +328,7 @@ struct ResultsPane {
     root: gtk::Box,
     stack: adw::ViewStack,
     line_list: gtk::ListBox,
+    line_scroller: gtk::ScrolledWindow,
     buffer: gtk::TextBuffer,
     count: gtk::Label,
     rows: Rc<RefCell<Vec<(adw::ActionRow, String)>>>,
@@ -248,6 +366,17 @@ impl ResultsPane {
             .join("\n");
         self.original_text.replace(text.clone());
         self.buffer.set_text(&text);
+    }
+
+    fn clear(&self) {
+        self.line_list.unselect_all();
+        while let Some(child) = self.line_list.first_child() {
+            self.line_list.remove(&child);
+        }
+        self.rows.borrow_mut().clear();
+        self.count.set_label("0 行");
+        self.original_text.borrow_mut().clear();
+        self.buffer.set_text("");
     }
 }
 
@@ -321,6 +450,17 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     let line_list = gtk::ListBox::new();
     line_list.set_selection_mode(gtk::SelectionMode::Single);
     line_list.add_css_class("boxed-list");
+    let toasts_for_line_copy = toasts.clone();
+    let status_for_line_copy = status.clone();
+    line_list.connect_row_activated(move |_, row| {
+        let Ok(row) = row.clone().downcast::<adw::ActionRow>() else {
+            return;
+        };
+        let text = row.title();
+        row.display().clipboard().set_text(&text);
+        status_for_line_copy.set_label("已复制所选文本行");
+        add_toast(&toasts_for_line_copy, "文本行已复制到剪贴板");
+    });
 
     let rows = Rc::new(RefCell::new(Vec::<(adw::ActionRow, String)>::new()));
     let rows_for_search = rows.clone();
@@ -393,6 +533,7 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         root,
         stack,
         line_list,
+        line_scroller,
         buffer,
         count,
         rows,
@@ -408,9 +549,11 @@ fn build_header(
     status: &gtk::Label,
     runtime_summary: &gtk::Label,
     results_pane: &ResultsPane,
+    preview: &PreviewPane,
     settings_state: Rc<SettingsState>,
     split_view: &adw::OverlaySplitView,
     backend: Rc<Backend>,
+    document: Rc<DocumentState>,
 ) -> adw::HeaderBar {
     let header = adw::HeaderBar::new();
     let title = adw::WindowTitle::builder()
@@ -419,9 +562,18 @@ fn build_header(
         .build();
     header.set_title_widget(Some(&title));
 
-    let capture = button_content("截图识别", "edit-select-all-symbolic");
+    let capture_menu = gio::Menu::new();
+    capture_menu.append(Some("区域截图"), Some("win.capture-region"));
+    capture_menu.append(Some("屏幕截图"), Some("win.capture-screen"));
+    capture_menu.append(Some("窗口截图"), Some("win.capture-window"));
+    let capture = adw::SplitButton::builder()
+        .label("截图识别")
+        .icon_name("edit-select-all-symbolic")
+        .menu_model(&capture_menu)
+        .dropdown_tooltip("选择截图目标")
+        .build();
     capture.add_css_class("suggested-action");
-    capture.set_action_name(Some("win.capture"));
+    capture.set_action_name(Some("win.capture-region"));
     capture.set_tooltip_text(Some("框选屏幕区域并识别  Ctrl+Shift+O"));
     header.pack_start(&capture);
 
@@ -429,6 +581,13 @@ fn build_header(
     open.set_action_name(Some("win.open"));
     open.set_tooltip_text(Some("选择图片文件  Ctrl+O"));
     header.pack_start(&open);
+
+    let process = button_content("开始处理", "media-playback-start-symbolic");
+    process.set_action_name(Some("win.process"));
+    process.add_css_class("suggested-action");
+    process.set_tooltip_text(Some("使用当前产线设置开始识别"));
+    document.process_button.replace(Some(process.clone()));
+    header.pack_start(&process);
 
     let preferences = gtk::Button::from_icon_name("emblem-system-symbolic");
     preferences.add_css_class("flat");
@@ -458,9 +617,11 @@ fn build_header(
         status,
         runtime_summary,
         &results_pane.buffer,
+        preview,
         settings_state,
         split_view,
         backend,
+        document,
     );
     header
 }
@@ -473,36 +634,119 @@ fn install_window_actions(
     status: &gtk::Label,
     runtime_summary: &gtk::Label,
     buffer: &gtk::TextBuffer,
+    preview: &PreviewPane,
     settings_state: Rc<SettingsState>,
     split_view: &adw::OverlaySplitView,
     backend: Rc<Backend>,
+    document: Rc<DocumentState>,
 ) {
     let open = gio::SimpleAction::new("open", None);
     let window_for_open = window.clone();
     let backend_for_open = backend.clone();
     let settings_for_open = settings_state.clone();
+    let preview_for_open = preview.clone();
     let toasts_for_open = toasts.clone();
     let status_for_open = status.clone();
+    let document_for_open = document.clone();
     open.connect_activate(move |_, _| {
         open_image_dialog(
             &window_for_open,
             backend_for_open.clone(),
             settings_for_open.clone(),
+            preview_for_open.clone(),
+            document_for_open.clone(),
             &toasts_for_open,
             &status_for_open,
         );
     });
     window.add_action(&open);
 
-    let capture = gio::SimpleAction::new("capture", None);
-    let toasts_for_capture = toasts.clone();
-    capture.connect_activate(move |_, _| {
-        add_toast(
-            &toasts_for_capture,
-            "截图框选将在完成 Wayland 与多平台设计后实现",
+    let paste = gio::SimpleAction::new("paste", None);
+    paste.set_enabled(preview.drawing_area.has_focus());
+    let paste_for_focus = paste.clone();
+    preview.drawing_area.connect_has_focus_notify(move |area| {
+        paste_for_focus.set_enabled(area.has_focus());
+    });
+    let window_for_paste = window.clone();
+    let backend_for_paste = backend.clone();
+    let settings_for_paste = settings_state.clone();
+    let preview_for_paste = preview.clone();
+    let document_for_paste = document.clone();
+    let toasts_for_paste = toasts.clone();
+    let status_for_paste = status.clone();
+    paste.connect_activate(move |_, _| {
+        paste_clipboard_image(
+            &window_for_paste,
+            backend_for_paste.clone(),
+            settings_for_paste.clone(),
+            preview_for_paste.clone(),
+            document_for_paste.clone(),
+            &toasts_for_paste,
+            &status_for_paste,
         );
     });
-    window.add_action(&capture);
+    window.add_action(&paste);
+
+    for (action_name, kind, prompt) in [
+        ("capture-region", CaptureKind::Region, "正在准备区域截图"),
+        ("capture-screen", CaptureKind::Screen, "请选择要截取的屏幕"),
+        ("capture-window", CaptureKind::Window, "请选择要截取的窗口"),
+    ] {
+        let capture = gio::SimpleAction::new(action_name, None);
+        let window_for_capture = window.clone();
+        let backend = backend.clone();
+        let settings = settings_state.clone();
+        let preview = preview.clone();
+        let toasts = toasts.clone();
+        let status = status.clone();
+        let document = document.clone();
+        capture.connect_activate(move |_, _| {
+            let window = window_for_capture.clone();
+            let backend = backend.clone();
+            let settings = settings.clone();
+            let preview = preview.clone();
+            let toasts = toasts.clone();
+            let status = status.clone();
+            let document = document.clone();
+            status.set_label(prompt);
+            glib::MainContext::default().spawn_local(async move {
+                let configured_delay = settings.screenshot_delay_ms.get().round() as u64;
+                #[cfg(debug_assertions)]
+                let configured_delay = std::env::var("PPOCR_GUI_TEST_SCREENSHOT_DELAY_MS")
+                    .ok()
+                    .and_then(|value| value.parse().ok())
+                    .unwrap_or(configured_delay);
+                let settle_delay = std::time::Duration::from_millis(configured_delay.min(30_000));
+                match ppocr_screenshot::capture(
+                    window.upcast_ref::<gtk::Window>(),
+                    kind,
+                    settle_delay,
+                )
+                .await
+                {
+                    Ok(CaptureOutcome::Captured(image)) => {
+                        load_image_bytes(
+                            image.bytes,
+                            image.source_name,
+                            backend,
+                            settings,
+                            preview,
+                            document,
+                            &toasts,
+                            &status,
+                        );
+                    }
+                    Ok(CaptureOutcome::Cancelled) => status.set_label("截图已取消"),
+                    Err(error) => {
+                        eprintln!("screenshot capture failed: {error}");
+                        status.set_label("截图失败");
+                        add_toast(&toasts, &error.to_string());
+                    }
+                }
+            });
+        });
+        window.add_action(&capture);
+    }
 
     let copy = gio::SimpleAction::new("copy", None);
     let buffer_for_copy = buffer.clone();
@@ -513,13 +757,31 @@ fn install_window_actions(
     });
     window.add_action(&copy);
 
+    let backend_for_process = backend.clone();
+    let settings_for_process = settings_state.clone();
+    let preview_for_process = preview.clone();
+    let status_for_process = status.clone();
+    let document_for_process = document.clone();
+    document.process_action.connect_activate(move |_, _| {
+        process_loaded_document(
+            backend_for_process.clone(),
+            settings_for_process.clone(),
+            preview_for_process.clone(),
+            document_for_process.clone(),
+            &status_for_process,
+        );
+    });
+
     let preferences = gio::SimpleAction::new("preferences", None);
+    let app_for_preferences = app.clone();
     let window_for_preferences = window.clone();
     let runtime_for_preferences = runtime_summary.clone();
+    let settings_for_preferences = settings_state.clone();
     preferences.connect_activate(move |_, _| {
         settings::present_settings(
+            &app_for_preferences,
             &window_for_preferences,
-            settings_state.clone(),
+            settings_for_preferences.clone(),
             &runtime_for_preferences,
         );
     });
@@ -532,16 +794,15 @@ fn install_window_actions(
     });
     window.add_action(&toggle_results);
 
-    app.set_accels_for_action("win.open", &["<Primary>O"]);
-    app.set_accels_for_action("win.capture", &["<Primary><Shift>O"]);
-    app.set_accels_for_action("win.copy", &["<Primary><Shift>C"]);
-    app.set_accels_for_action("win.preferences", &["<Primary>comma"]);
+    settings::apply_shortcuts(app, &settings_state.shortcuts.borrow());
 }
 
 fn open_image_dialog(
     window: &adw::ApplicationWindow,
     backend: Rc<Backend>,
     settings: Rc<SettingsState>,
+    preview: PreviewPane,
+    document: Rc<DocumentState>,
     toasts: &adw::ToastOverlay,
     status: &gtk::Label,
 ) {
@@ -578,7 +839,48 @@ fn open_image_dialog(
                 return;
             }
         };
-        submit_image_file(file, backend, settings, &toasts, &status);
+        submit_image_file(file, backend, settings, preview, document, &toasts, &status);
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paste_clipboard_image(
+    window: &adw::ApplicationWindow,
+    backend: Rc<Backend>,
+    settings: Rc<SettingsState>,
+    preview: PreviewPane,
+    document: Rc<DocumentState>,
+    toasts: &adw::ToastOverlay,
+    status: &gtk::Label,
+) {
+    let clipboard = gtk::prelude::WidgetExt::display(window).clipboard();
+    let toasts = toasts.clone();
+    let status = status.clone();
+    glib::MainContext::default().spawn_local(async move {
+        status.set_label("正在读取剪贴板图片");
+        match clipboard.read_texture_future().await {
+            Ok(Some(texture)) => {
+                let png = texture.save_to_png_bytes();
+                load_image_bytes(
+                    png.as_ref().to_vec(),
+                    "剪贴板图片.png".to_owned(),
+                    backend,
+                    settings,
+                    preview,
+                    document,
+                    &toasts,
+                    &status,
+                );
+            }
+            Ok(None) => {
+                status.set_label("剪贴板中没有图片");
+                add_toast(&toasts, "剪贴板中没有可粘贴的图片");
+            }
+            Err(error) => {
+                status.set_label("读取剪贴板失败");
+                add_toast(&toasts, &format!("无法读取剪贴板图片：{error}"));
+            }
+        }
     });
 }
 
@@ -586,6 +888,8 @@ fn submit_image_file(
     file: gio::File,
     backend: Rc<Backend>,
     settings: Rc<SettingsState>,
+    preview: PreviewPane,
+    document: Rc<DocumentState>,
     toasts: &adw::ToastOverlay,
     status: &gtk::Label,
 ) {
@@ -601,29 +905,97 @@ fn submit_image_file(
                 return;
             }
         };
-        if bytes.len() as u64 > Limits::DEFAULT.max_attachment_bytes {
-            status.set_label("图片文件过大");
-            add_toast(&toasts, "图片文件超过 256 MiB IPC 上限");
-            return;
-        }
         let bytes = bytes.as_ref().to_vec();
-        let Some(format) = detect_image_format(&bytes) else {
-            status.set_label("不支持的图片格式");
-            add_toast(
-                &toasts,
-                "文件内容不是受支持的 PNG、JPEG、WebP、TIFF、BMP 或 GIF",
-            );
-            return;
-        };
         let source_name = file
             .basename()
             .map(|name| name.to_string_lossy().into_owned())
             .unwrap_or_else(|| file.parse_name().to_string());
-        status.set_label("图片已读取，正在连接识别后端");
-        backend.submit(ImageJob {
-            source_name,
+        load_image_bytes(
             bytes,
-            format,
+            source_name,
+            backend,
+            settings,
+            preview,
+            document,
+            &toasts,
+            &status,
+        );
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn load_image_bytes(
+    bytes: Vec<u8>,
+    source_name: String,
+    backend: Rc<Backend>,
+    settings: Rc<SettingsState>,
+    preview: PreviewPane,
+    document: Rc<DocumentState>,
+    toasts: &adw::ToastOverlay,
+    status: &gtk::Label,
+) {
+    if bytes.len() as u64 > Limits::DEFAULT.max_attachment_bytes {
+        status.set_label("图片文件过大");
+        add_toast(toasts, "图片文件超过 256 MiB IPC 上限");
+        return;
+    }
+    let Some(format) = detect_image_format(&bytes) else {
+        status.set_label("不支持的图片格式");
+        add_toast(
+            toasts,
+            "文件内容不是受支持的 PNG、JPEG、WebP、TIFF、BMP 或 GIF",
+        );
+        return;
+    };
+    if let Err(error) = preview.set_source(&bytes, &source_name) {
+        status.set_label("图片预览失败");
+        add_toast(toasts, &format!("无法解码所选图片：{error}"));
+        return;
+    }
+    backend.invalidate();
+    document.clear_results();
+    document.loaded.replace(Some(LoadedDocument {
+        source_name,
+        bytes,
+        format,
+    }));
+    document.has_result.set(false);
+    document.set_processing(false);
+    if settings.immediate_processing.get() {
+        process_loaded_document(backend, settings, preview, document, status);
+    } else {
+        status.set_label("图片已就绪，点击“开始处理”进行识别");
+    }
+}
+
+fn process_loaded_document(
+    backend: Rc<Backend>,
+    settings: Rc<SettingsState>,
+    preview: PreviewPane,
+    document: Rc<DocumentState>,
+    status: &gtk::Label,
+) {
+    if document.processing.get() {
+        return;
+    }
+    let Some(loaded) = document.loaded.borrow().clone() else {
+        status.set_label("请先打开、粘贴或截取一张图片");
+        return;
+    };
+    document.set_processing(true);
+    preview.set_processing();
+    status.set_label("正在连接识别后端");
+    glib::MainContext::default().spawn_local(async move {
+        #[cfg(debug_assertions)]
+        if let Ok(delay_ms) = std::env::var("PPOCR_GUI_TEST_DELAY_MS")
+            && let Ok(delay_ms) = delay_ms.parse::<u64>()
+        {
+            glib::timeout_future(std::time::Duration::from_millis(delay_ms)).await;
+        }
+        backend.submit(ImageJob {
+            source_name: loaded.source_name,
+            bytes: loaded.bytes,
+            format: loaded.format,
             config: settings.pipeline_config(),
             keep_worker_warm: settings.keep_worker_warm.get(),
             idle_timeout_minutes: settings.idle_timeout_minutes.get().round() as u32,
@@ -759,7 +1131,13 @@ fn copy_buffer(buffer: &gtk::TextBuffer) {
 }
 
 fn add_toast(overlay: &adw::ToastOverlay, message: &str) {
-    overlay.add_toast(adw::Toast::builder().title(message).timeout(3).build());
+    let toast = adw::Toast::builder().title(message).timeout(3).build();
+    ACTIVE_TOAST.with(|active| {
+        if let Some(previous) = active.replace(Some(toast.clone())) {
+            previous.dismiss();
+        }
+    });
+    overlay.add_toast(toast);
 }
 
 fn apply_theme(theme: u32) {
@@ -789,6 +1167,13 @@ fn install_css() {
         }
         .preview-canvas {
             background-color: @headerbar_bg_color;
+        }
+        .processing-overlay {
+            background-color: rgba(0, 0, 0, 0.44);
+        }
+        .processing-label {
+            color: white;
+            font-weight: 600;
         }
         .ocr-text {
             font-size: 1.02em;

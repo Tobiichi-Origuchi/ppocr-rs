@@ -16,6 +16,12 @@ pub struct AppConfig {
     pub keep_worker_warm: bool,
     pub idle_timeout_minutes: u32,
     pub theme: ThemePreference,
+    #[serde(default)]
+    pub immediate_processing: bool,
+    #[serde(default = "default_screenshot_delay_ms")]
+    pub screenshot_delay_ms: u32,
+    #[serde(default)]
+    pub shortcuts: ShortcutConfig,
 }
 
 impl Default for AppConfig {
@@ -26,6 +32,43 @@ impl Default for AppConfig {
             keep_worker_warm: true,
             idle_timeout_minutes: 10,
             theme: ThemePreference::System,
+            immediate_processing: false,
+            screenshot_delay_ms: default_screenshot_delay_ms(),
+            shortcuts: ShortcutConfig::default(),
+        }
+    }
+}
+
+const fn default_screenshot_delay_ms() -> u32 {
+    500
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ShortcutConfig {
+    pub open_image: String,
+    pub paste_image: String,
+    pub capture_region: String,
+    pub capture_screen: String,
+    pub capture_window: String,
+    pub start_processing: String,
+    pub copy_all: String,
+    pub toggle_results: String,
+    pub preferences: String,
+}
+
+impl Default for ShortcutConfig {
+    fn default() -> Self {
+        Self {
+            open_image: "<Primary>O".to_owned(),
+            paste_image: "<Primary>V".to_owned(),
+            capture_region: "<Primary><Shift>O".to_owned(),
+            capture_screen: String::new(),
+            capture_window: String::new(),
+            start_processing: "<Primary>Return".to_owned(),
+            copy_all: "<Primary><Shift>C".to_owned(),
+            toggle_results: String::new(),
+            preferences: "<Primary>comma".to_owned(),
         }
     }
 }
@@ -156,5 +199,21 @@ mod tests {
                 .unwrap()
                 .contains("PP-OCRv6_tiny_det")
         );
+    }
+
+    #[test]
+    fn new_interaction_settings_have_safe_defaults_in_existing_config_files() {
+        let legacy = serde_json::json!({
+            "version": 1,
+            "pipeline": PipelineConfig::default(),
+            "keep_worker_warm": true,
+            "idle_timeout_minutes": 10,
+            "theme": "system"
+        });
+        let config: AppConfig = serde_json::from_value(legacy).unwrap();
+        assert!(!config.immediate_processing);
+        assert_eq!(config.screenshot_delay_ms, 500);
+        assert_eq!(config.shortcuts.paste_image, "<Primary>V");
+        assert_eq!(config.shortcuts.start_processing, "<Primary>Return");
     }
 }

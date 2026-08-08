@@ -3,7 +3,7 @@
 use std::{
     cmp::Ordering,
     sync::{
-        Mutex,
+        Arc, Mutex,
         atomic::{AtomicUsize, Ordering as AtomicOrdering},
     },
 };
@@ -16,7 +16,10 @@ use crate::document_orientation::{
 };
 use crate::document_rectification::{DocumentRectifier, DocumentRectifierOptions};
 use crate::image_geometry::{crop_text_region, rotate_image, sort_text_regions};
-use crate::models::{ModelDownloadError, ModelDownloader, ModelKind, manifest};
+use crate::models::{
+    DownloadedModel, ModelDownloadError, ModelDownloadProgressCallback, ModelDownloader, ModelKind,
+    manifest,
+};
 use crate::text_detection::{
     DetectedTextRegion, Point, TextDetectionParameters, TextDetector, TextDetectorOptions,
 };
@@ -156,6 +159,24 @@ pub struct OcrPipelineBuilder<'a> {
     pipeline_options: OcrPipelineOptions,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PipelineBuildPhase {
+    Downloading,
+    Initializing,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PipelineBuildProgress {
+    pub model_index: usize,
+    pub model_count: usize,
+    pub model_id: String,
+    pub phase: PipelineBuildPhase,
+    pub bytes_completed: Option<u64>,
+    pub total_bytes: Option<u64>,
+}
+
+pub type PipelineBuildProgressCallback = Arc<dyn Fn(PipelineBuildProgress) + Send + Sync + 'static>;
+
 impl<'a> OcrPipelineBuilder<'a> {
     /// Use the current PaddleX general OCR defaults with all optional stages enabled.
     pub fn new(downloader: &'a ModelDownloader) -> Self {
@@ -279,14 +300,37 @@ impl<'a> OcrPipelineBuilder<'a> {
 
     /// Validate every selection before downloading, then initialize only enabled modules.
     pub fn build(self) -> Result<OcrPipeline> {
+        self.build_inner(None)
+    }
+
+    pub fn build_with_progress(
+        self,
+        progress: PipelineBuildProgressCallback,
+    ) -> Result<OcrPipeline> {
+        self.build_inner(Some(progress))
+    }
+
+    fn build_inner(self, progress: Option<PipelineBuildProgressCallback>) -> Result<OcrPipeline> {
         self.validate()?;
+        let model_count = 2
+            + usize::from(self.document_orientation_model.is_some())
+            + usize::from(self.document_rectification_model.is_some())
+            + usize::from(self.textline_orientation_model.is_some());
+        let mut model_index = 0;
         let document_orientation = self
             .document_orientation_model
             .as_deref()
             .map(|model_id| {
-                DocumentOrientationClassifier::from_model(
-                    model_id,
+                model_index += 1;
+                let model = download_for_build(
                     self.downloader,
+                    model_id,
+                    model_index,
+                    model_count,
+                    progress.as_ref(),
+                )?;
+                DocumentOrientationClassifier::from_downloaded(
+                    &model,
                     self.document_orientation_options,
                 )
             })
@@ -295,36 +339,56 @@ impl<'a> OcrPipelineBuilder<'a> {
             .document_rectification_model
             .as_deref()
             .map(|model_id| {
-                DocumentRectifier::from_model(
-                    model_id,
+                model_index += 1;
+                let model = download_for_build(
                     self.downloader,
-                    self.document_rectification_options,
-                )
+                    model_id,
+                    model_index,
+                    model_count,
+                    progress.as_ref(),
+                )?;
+                DocumentRectifier::from_downloaded(&model, self.document_rectification_options)
             })
             .transpose()?;
-        let detector = TextDetector::from_model(
-            &self.text_detection_model,
+        model_index += 1;
+        let detector_model = download_for_build(
             self.downloader,
-            self.text_detection_options,
+            &self.text_detection_model,
+            model_index,
+            model_count,
+            progress.as_ref(),
         )?;
+        let detector = TextDetector::from_downloaded(&detector_model, self.text_detection_options)?;
         let textline_orientation = self
             .textline_orientation_model
             .as_deref()
             .map(|model_id| {
-                TextlineOrientationClassifier::from_model(
-                    model_id,
+                model_index += 1;
+                let model = download_for_build(
                     self.downloader,
+                    model_id,
+                    model_index,
+                    model_count,
+                    progress.as_ref(),
+                )?;
+                TextlineOrientationClassifier::from_downloaded(
+                    &model,
                     self.textline_orientation_options,
                 )
             })
             .transpose()?;
         let mut text_recognition_options = self.text_recognition_options;
         text_recognition_options.return_word_alignment |= self.pipeline_options.return_word_boxes;
-        let recognizer = TextRecognizer::from_model(
-            &self.text_recognition_model,
+        model_index += 1;
+        let recognizer_model = download_for_build(
             self.downloader,
-            text_recognition_options,
+            &self.text_recognition_model,
+            model_index,
+            model_count,
+            progress.as_ref(),
         )?;
+        let recognizer =
+            TextRecognizer::from_downloaded(&recognizer_model, text_recognition_options)?;
         OcrPipeline::from_components(
             detector,
             recognizer,
@@ -370,6 +434,40 @@ impl<'a> OcrPipelineBuilder<'a> {
         }
         Ok(())
     }
+}
+
+fn download_for_build(
+    downloader: &ModelDownloader,
+    model_id: &str,
+    model_index: usize,
+    model_count: usize,
+    progress: Option<&PipelineBuildProgressCallback>,
+) -> Result<DownloadedModel> {
+    let download_progress: Option<ModelDownloadProgressCallback> = progress.map(|progress| {
+        let progress = progress.clone();
+        Arc::new(move |download: crate::ModelDownloadProgress| {
+            progress(PipelineBuildProgress {
+                model_index,
+                model_count,
+                model_id: download.model_id,
+                phase: PipelineBuildPhase::Downloading,
+                bytes_completed: Some(download.bytes_completed),
+                total_bytes: Some(download.total_bytes),
+            });
+        }) as ModelDownloadProgressCallback
+    });
+    let model = downloader.download_with_progress(model_id, download_progress)?;
+    if let Some(progress) = progress {
+        progress(PipelineBuildProgress {
+            model_index,
+            model_count,
+            model_id: model_id.to_owned(),
+            phase: PipelineBuildPhase::Initializing,
+            bytes_completed: None,
+            total_bytes: None,
+        });
+    }
+    Ok(model)
 }
 
 /// ONNX Runtime implementation of the PaddleOCR general OCR pipeline.
