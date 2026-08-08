@@ -4,8 +4,8 @@ use std::{
 };
 
 use ppocr_app_protocol::PipelineConfig;
+use ppocr_i18n::tr;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 const CONFIG_VERSION: u32 = 1;
 
@@ -143,27 +143,93 @@ fn config_path_from(
         .ok_or(ConfigError::DirectoryUnavailable)
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum ConfigError {
-    #[error("platform configuration directory is unavailable")]
     DirectoryUnavailable,
-    #[error("configuration path {path:?} has no parent directory")]
-    NoParent { path: PathBuf },
-    #[error("failed to create configuration directory {path:?}: {source}")]
-    CreateDirectory { path: PathBuf, source: io::Error },
-    #[error("failed to read configuration {path:?}: {source}")]
-    Read { path: PathBuf, source: io::Error },
-    #[error("failed to parse configuration {path:?}: {source}")]
+    NoParent {
+        path: PathBuf,
+    },
+    CreateDirectory {
+        path: PathBuf,
+        source: io::Error,
+    },
+    Read {
+        path: PathBuf,
+        source: io::Error,
+    },
     Parse {
         path: PathBuf,
         source: serde_json::Error,
     },
-    #[error("configuration {path:?} uses unsupported version {version}")]
-    UnsupportedVersion { path: PathBuf, version: u32 },
-    #[error("failed to serialize configuration: {0}")]
+    UnsupportedVersion {
+        path: PathBuf,
+        version: u32,
+    },
     Serialize(serde_json::Error),
-    #[error("failed to write configuration {path:?}: {source}")]
-    Write { path: PathBuf, source: io::Error },
+    Write {
+        path: PathBuf,
+        source: io::Error,
+    },
+}
+
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = match self {
+            Self::DirectoryUnavailable => {
+                tr!("The platform configuration directory is unavailable")
+            }
+            Self::NoParent { path } => tr!(
+                "Configuration path {path} has no parent directory",
+                path = path.display()
+            ),
+            Self::CreateDirectory { path, source } => tr!(
+                "Failed to create configuration directory {path}: {error}",
+                path = path.display(),
+                error = source
+            ),
+            Self::Read { path, source } => tr!(
+                "Failed to read configuration {path}: {error}",
+                path = path.display(),
+                error = source
+            ),
+            Self::Parse { path, source } => tr!(
+                "Failed to parse configuration {path}: {error}",
+                path = path.display(),
+                error = source
+            ),
+            Self::UnsupportedVersion { path, version } => tr!(
+                "Configuration {path} uses unsupported version {version}",
+                path = path.display(),
+                version = version
+            ),
+            Self::Serialize(error) => {
+                tr!(
+                    "Failed to serialize the configuration: {error}",
+                    error = error
+                )
+            }
+            Self::Write { path, source } => tr!(
+                "Failed to write configuration {path}: {error}",
+                path = path.display(),
+                error = source
+            ),
+        };
+        formatter.write_str(&message)
+    }
+}
+
+impl std::error::Error for ConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::CreateDirectory { source, .. }
+            | Self::Read { source, .. }
+            | Self::Write { source, .. } => Some(source),
+            Self::Parse { source, .. } | Self::Serialize(source) => Some(source),
+            Self::DirectoryUnavailable
+            | Self::NoParent { .. }
+            | Self::UnsupportedVersion { .. } => None,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -14,7 +14,7 @@ async-channel = "2.5"
 gdk-pixbuf = "0.22.0"
 gtk = { package = "gtk4", version = "=0.11.3", features = ["v4_14"] }
 image = { version = "0.25.8", default-features = false, features = ["png"] }
-thiserror = "2.0"
+ppocr-i18n = { path = "../ppocr-i18n" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "=0.13.13", default-features = false, features = ["async-io", "screencast"] }

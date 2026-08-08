@@ -3,6 +3,7 @@ members = [
     "apps/ppocr-gui",
     "apps/ppocr-worker",
     "crates/ppocr-app-protocol",
+    "crates/ppocr-i18n",
     "crates/ppocr-pipeline",
     "crates/ppocr-screenshot",
 ]

@@ -7,7 +7,7 @@ mod screencopy_frame;
 mod selector;
 
 use gtk::prelude::*;
-use thiserror::Error;
+use ppocr_i18n::tr;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CaptureKind {
@@ -26,20 +26,41 @@ pub enum CaptureOutcome {
     Cancelled,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum CaptureError {
     #[cfg(not(target_os = "linux"))]
-    #[error("screenshot capture is not supported on this platform yet")]
     UnsupportedPlatform,
-    #[error("failed to capture the physical output: {0}")]
     Screencopy(String),
-    #[error("screenshot portal failed: {0}")]
     Portal(String),
-    #[error("failed to prepare screenshot selection: {0}")]
     Selection(String),
-    #[error("failed to capture window frame: {0}")]
     PipeWire(String),
 }
+
+impl std::fmt::Display for CaptureError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = match self {
+            #[cfg(not(target_os = "linux"))]
+            Self::UnsupportedPlatform => {
+                tr!("Screenshot capture is not supported on this platform yet")
+            }
+            Self::Screencopy(error) => tr!(
+                "Failed to capture the physical output: {error}",
+                error = error
+            ),
+            Self::Portal(error) => tr!("Screenshot portal failed: {error}", error = error),
+            Self::Selection(error) => tr!(
+                "Failed to prepare screenshot selection: {error}",
+                error = error
+            ),
+            Self::PipeWire(error) => {
+                tr!("Failed to capture window frame: {error}", error = error)
+            }
+        };
+        formatter.write_str(&message)
+    }
+}
+
+impl std::error::Error for CaptureError {}
 
 #[cfg(target_os = "linux")]
 pub async fn capture(
@@ -77,14 +98,14 @@ async fn capture_hidden(
             {
                 Some(bytes) => Ok(CaptureOutcome::Captured(CapturedImage {
                     bytes,
-                    source_name: "区域截图.png".to_owned(),
+                    source_name: tr!("Region capture.png"),
                 })),
                 None => Ok(CaptureOutcome::Cancelled),
             }
         }
         CaptureKind::Screen => Ok(CaptureOutcome::Captured(CapturedImage {
             bytes: capture_output(monitor).await?,
-            source_name: "屏幕截图.png".to_owned(),
+            source_name: tr!("Screen capture.png"),
         })),
         CaptureKind::Window => capture_window().await,
     }
@@ -115,9 +136,9 @@ async fn capture_window() -> Result<CaptureOutcome, CaptureError> {
         .await
         .map_err(|error| CaptureError::Portal(error.to_string()))?;
     if !sources.contains(SourceType::Window) {
-        return Err(CaptureError::Portal(
-            "当前 ScreenCast portal 不提供窗口捕获".to_owned(),
-        ));
+        return Err(CaptureError::Portal(tr!(
+            "The current ScreenCast portal does not provide window capture"
+        )));
     }
     let session = portal
         .create_session(Default::default())
@@ -155,9 +176,9 @@ async fn capture_window() -> Result<CaptureOutcome, CaptureError> {
         Err(error) => return Err(CaptureError::Portal(error.to_string())),
     };
     let Some(stream) = response.streams().first() else {
-        return Err(CaptureError::Portal(
-            "选择完成但 portal 没有返回视频流".to_owned(),
-        ));
+        return Err(CaptureError::Portal(tr!(
+            "The portal returned no video stream after selection"
+        )));
     };
     let fd = portal
         .open_pipe_wire_remote(&session, Default::default())
@@ -168,7 +189,7 @@ async fn capture_window() -> Result<CaptureOutcome, CaptureError> {
         .map(|bytes| {
             CaptureOutcome::Captured(CapturedImage {
                 bytes,
-                source_name: "窗口截图.png".to_owned(),
+                source_name: tr!("Window capture.png"),
             })
         })
         .map_err(CaptureError::PipeWire);

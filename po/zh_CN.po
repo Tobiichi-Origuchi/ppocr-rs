@@ -1,0 +1,1165 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ppocr-rs 0.1.0\n"
+"Report-Msgid-Bugs-To: ppocr-rs\n"
+"POT-Creation-Date: 2026-08-08 15:44+0800\n"
+"PO-Revision-Date: 2026-08-08 00:00+0800\n"
+"Last-Translator: ppocr-rs contributors\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: apps/ppocr-gui/src/backend.rs:115
+msgid "Restarting the recognition process to apply the configuration"
+msgstr "正在重启识别进程以应用配置"
+
+#: apps/ppocr-gui/src/backend.rs:170
+msgid "Starting the recognition process"
+msgstr "正在启动识别进程"
+
+#: apps/ppocr-gui/src/backend.rs:205
+#, rust-format
+msgid "The recognition process exited unexpectedly: {description}"
+msgstr "识别进程异常退出：{description}"
+
+#: apps/ppocr-gui/src/backend.rs:255
+msgid "Loading models and initializing the pipeline"
+msgstr "正在加载模型并初始化产线"
+
+#: apps/ppocr-gui/src/backend.rs:263
+msgid "Recognizing the image"
+msgstr "正在识别图片"
+
+#: apps/ppocr-gui/src/backend.rs:275
+msgid "Image"
+msgstr "图片"
+
+#: apps/ppocr-gui/src/backend.rs:368
+#, rust-format
+msgid "Recognition backend error ({code}): {message}"
+msgstr "识别后端错误（{code}）：{message}"
+
+#: apps/ppocr-gui/src/backend.rs:530
+#, rust-format
+msgid "Failed to resolve the current executable: {error}"
+msgstr "无法确定当前可执行文件：{error}"
+
+#: apps/ppocr-gui/src/backend.rs:534
+#, rust-format
+msgid "Failed to start OCR worker {path}: {error}"
+msgstr "无法启动 OCR worker {path}：{error}"
+
+#: apps/ppocr-gui/src/backend.rs:539
+#, rust-format
+msgid "The OCR worker did not expose its {pipe} pipe"
+msgstr "OCR worker 没有提供 {pipe} 管道"
+
+#: apps/ppocr-gui/src/backend.rs:542
+#, rust-format
+msgid "Failed to create an OCR worker I/O thread: {error}"
+msgstr "无法创建 OCR worker I/O 线程：{error}"
+
+#: apps/ppocr-gui/src/backend.rs:545
+msgid "The OCR worker command channel closed"
+msgstr "OCR worker 命令通道已关闭"
+
+#: apps/ppocr-gui/src/config.rs:179
+msgid "The platform configuration directory is unavailable"
+msgstr "平台配置目录不可用"
+
+#: apps/ppocr-gui/src/config.rs:182
+#, rust-format
+msgid "Configuration path {path} has no parent directory"
+msgstr "配置路径 {path} 没有父目录"
+
+#: apps/ppocr-gui/src/config.rs:186
+#, rust-format
+msgid "Failed to create configuration directory {path}: {error}"
+msgstr "无法创建配置目录 {path}：{error}"
+
+#: apps/ppocr-gui/src/config.rs:191
+#, rust-format
+msgid "Failed to read configuration {path}: {error}"
+msgstr "无法读取配置 {path}：{error}"
+
+#: apps/ppocr-gui/src/config.rs:196
+#, rust-format
+msgid "Failed to parse configuration {path}: {error}"
+msgstr "无法解析配置 {path}：{error}"
+
+#: apps/ppocr-gui/src/config.rs:201
+#, rust-format
+msgid "Configuration {path} uses unsupported version {version}"
+msgstr "配置 {path} 使用了不支持的版本 {version}"
+
+#: apps/ppocr-gui/src/config.rs:207
+#, rust-format
+msgid "Failed to serialize the configuration: {error}"
+msgstr "无法序列化配置：{error}"
+
+#: apps/ppocr-gui/src/config.rs:212
+#, rust-format
+msgid "Failed to write configuration {path}: {error}"
+msgstr "无法写入配置 {path}：{error}"
+
+#: apps/ppocr-gui/src/data.rs:64
+msgid "Plain text (.txt)"
+msgstr "纯文本 (.txt)"
+
+#: apps/ppocr-gui/src/data.rs:65
+msgid "Markdown (.md)"
+msgstr "Markdown (.md)"
+
+#: apps/ppocr-gui/src/data.rs:66
+msgid "JSON (.json)"
+msgstr "JSON (.json)"
+
+#: apps/ppocr-gui/src/data.rs:67
+msgid "CSV (.csv)"
+msgstr "CSV (.csv)"
+
+#: apps/ppocr-gui/src/data.rs:68
+msgid "TSV (.tsv)"
+msgstr "TSV (.tsv)"
+
+#: apps/ppocr-gui/src/data.rs:69
+msgid "hOCR (.html)"
+msgstr "hOCR (.html)"
+
+#: apps/ppocr-gui/src/data.rs:70
+msgid "ALTO XML (.xml)"
+msgstr "ALTO XML (.xml)"
+
+#: apps/ppocr-gui/src/data.rs:71
+msgid "Annotated image (.png)"
+msgstr "标注图片 (.png)"
+
+#: apps/ppocr-gui/src/preview.rs:59
+msgid "Ready to process"
+msgstr "等待处理"
+
+#: apps/ppocr-gui/src/preview.rs:79 apps/ppocr-gui/src/window.rs:59
+msgid "Processing"
+msgstr "正在处理"
+
+#: apps/ppocr-gui/src/preview.rs:84
+msgid "Preparing recognition…"
+msgstr "正在准备识别…"
+
+#: apps/ppocr-gui/src/preview.rs:111
+msgid "Recognition complete"
+msgstr "识别完成"
+
+#: apps/ppocr-gui/src/preview.rs:129
+msgid "Processing failed"
+msgstr "处理失败"
+
+#: apps/ppocr-gui/src/preview.rs:155
+msgid "Document preview"
+msgstr "文档预览"
+
+#: apps/ppocr-gui/src/preview.rs:158
+msgid "No image opened"
+msgstr "尚未打开图片"
+
+#: apps/ppocr-gui/src/preview.rs:170
+msgid "Waiting for an image"
+msgstr "等待图片"
+
+#: apps/ppocr-gui/src/preview.rs:191
+msgid "OCR document preview"
+msgstr "OCR 文档预览"
+
+#: apps/ppocr-gui/src/preview.rs:243
+msgid "Processed image"
+msgstr "处理后图"
+
+#: apps/ppocr-gui/src/preview.rs:245
+msgid "Original image"
+msgstr "原图"
+
+#: apps/ppocr-gui/src/preview.rs:281
+msgid "Processing image…"
+msgstr "正在处理图片…"
+
+#: apps/ppocr-gui/src/preview.rs:310
+msgid "Show text boxes"
+msgstr "显示文本框"
+
+#: apps/ppocr-gui/src/preview.rs:323
+msgid "Zoom out"
+msgstr "缩小"
+
+#: apps/ppocr-gui/src/preview.rs:330
+msgid "Preview zoom"
+msgstr "预览缩放"
+
+#: apps/ppocr-gui/src/preview.rs:335
+msgid "Zoom in"
+msgstr "放大"
+
+#: apps/ppocr-gui/src/preview.rs:338
+msgid "Fit to window"
+msgstr "适应窗口"
+
+#: apps/ppocr-gui/src/preview.rs:347
+msgid "Page 1 of 1"
+msgstr "第 1 / 1 页"
+
+#: apps/ppocr-gui/src/preview.rs:472
+msgid "Open an image to start recognition"
+msgstr "打开一张图片以开始识别"
+
+#: apps/ppocr-gui/src/settings.rs:53
+#, rust-format
+msgid "Failed to read the configuration file; using defaults: {error}"
+msgstr "配置文件读取失败，已使用默认值：{error}"
+
+#: apps/ppocr-gui/src/settings.rs:200
+msgid "Settings"
+msgstr "设置"
+
+#: apps/ppocr-gui/src/settings.rs:215
+msgid "Models and pipeline"
+msgstr "模型与产线"
+
+#: apps/ppocr-gui/src/settings.rs:218
+msgid ""
+"Choose the required OCR models and enable the three preprocessing modules as "
+"needed"
+msgstr "选择必要 OCR 模型，并按需启用三个前处理模块"
+
+#: apps/ppocr-gui/src/settings.rs:223
+msgid "Required models"
+msgstr "必要模型"
+
+#: apps/ppocr-gui/src/settings.rs:225
+msgid "Text detection and text recognition are always enabled"
+msgstr "文本检测和文本识别始终启用"
+
+#: apps/ppocr-gui/src/settings.rs:229
+msgid "Text detection model"
+msgstr "文本检测模型"
+
+#: apps/ppocr-gui/src/settings.rs:230
+msgid "Locates text regions in the image"
+msgstr "定位图像中的文本区域"
+
+#: apps/ppocr-gui/src/settings.rs:236
+msgid "Text recognition model"
+msgstr "文本识别模型"
+
+#: apps/ppocr-gui/src/settings.rs:237
+msgid "Converts cropped text lines into characters"
+msgstr "将裁剪后的文本行转换为字符"
+
+#: apps/ppocr-gui/src/settings.rs:260
+msgid "Optional modules"
+msgstr "可选模块"
+
+#: apps/ppocr-gui/src/settings.rs:262
+msgid "Each module can be enabled independently and use its own selected model"
+msgstr "每个模块都可以独立开关并选择对应模型"
+
+#: apps/ppocr-gui/src/settings.rs:268
+msgid "Document image orientation classification"
+msgstr "文档图像方向分类"
+
+#: apps/ppocr-gui/src/settings.rs:269
+msgid "Detects 0°, 90°, 180°, or 270° page rotation"
+msgstr "检测整页 0°、90°、180° 或 270° 旋转"
+
+#: apps/ppocr-gui/src/settings.rs:290
+msgid "Document image rectification"
+msgstr "文档图像矫正"
+
+#: apps/ppocr-gui/src/settings.rs:291
+msgid "Uses UVDoc to correct document perspective and curved distortion"
+msgstr "使用 UVDoc 修正文档透视与弯曲形变"
+
+#: apps/ppocr-gui/src/settings.rs:312
+msgid "Text-line orientation classification"
+msgstr "文本行方向分类"
+
+#: apps/ppocr-gui/src/settings.rs:313
+msgid "Corrects individual text-line orientation before recognition"
+msgstr "在识别前校正单行文本方向"
+
+#: apps/ppocr-gui/src/settings.rs:340
+msgid "Runtime and output"
+msgstr "运行与输出"
+
+#: apps/ppocr-gui/src/settings.rs:343
+msgid "Device availability is verified after the IPC backend connects"
+msgstr "设备可用性将在 IPC 后端连接后验证"
+
+#: apps/ppocr-gui/src/settings.rs:348
+msgid "Inference"
+msgstr "推理"
+
+#: apps/ppocr-gui/src/settings.rs:351
+msgid "Inference device"
+msgstr "推理设备"
+
+#: apps/ppocr-gui/src/settings.rs:352
+msgid "An unavailable execution provider will not silently fall back"
+msgstr "不可用的执行 Provider 不会静默回退"
+
+#: apps/ppocr-gui/src/settings.rs:360
+msgid "Minimum confidence"
+msgstr "最低置信度"
+
+#: apps/ppocr-gui/src/settings.rs:361
+msgid "Recognized text below this score is filtered out"
+msgstr "低于该分数的识别文本将被过滤"
+
+#: apps/ppocr-gui/src/settings.rs:381
+msgid "Recognition process"
+msgstr "识别进程"
+
+#: apps/ppocr-gui/src/settings.rs:384
+msgid "Process immediately"
+msgstr "立即处理"
+
+#: apps/ppocr-gui/src/settings.rs:386
+msgid ""
+"Start recognition automatically after opening, pasting, or capturing an "
+"image; off by default"
+msgstr "打开、粘贴或截取图片后自动开始识别；默认关闭"
+
+#: apps/ppocr-gui/src/settings.rs:391
+msgid "Keep the recognition process running"
+msgstr "保持识别进程常驻"
+
+#: apps/ppocr-gui/src/settings.rs:392
+msgid "Avoid repeated model-loading delays"
+msgstr "减少连续识别时的模型加载等待"
+
+#: apps/ppocr-gui/src/settings.rs:396
+msgid "Idle timeout"
+msgstr "空闲退出时间"
+
+#: apps/ppocr-gui/src/settings.rs:397
+msgid "Minutes"
+msgstr "分钟"
+
+#: apps/ppocr-gui/src/settings.rs:428 apps/ppocr-gui/src/window.rs:629
+msgid "Results"
+msgstr "结果"
+
+#: apps/ppocr-gui/src/settings.rs:431
+msgid "Return word-level text boxes"
+msgstr "返回单词级文本框"
+
+#: apps/ppocr-gui/src/settings.rs:433
+msgid "Generated only for recognition models that support character alignment"
+msgstr "仅在支持字符对齐的识别模型上生成"
+
+#: apps/ppocr-gui/src/settings.rs:450
+msgid "Interface"
+msgstr "界面"
+
+#: apps/ppocr-gui/src/settings.rs:455
+msgid "Appearance"
+msgstr "外观"
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Follow system"
+msgstr "跟随系统"
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Light"
+msgstr "浅色"
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Dark"
+msgstr "深色"
+
+#: apps/ppocr-gui/src/settings.rs:459
+msgid "Theme"
+msgstr "主题"
+
+#: apps/ppocr-gui/src/settings.rs:460
+msgid "GTK follows desktop colors and accessibility settings"
+msgstr "GTK 会跟随桌面配色和辅助功能设置"
+
+#: apps/ppocr-gui/src/settings.rs:481
+msgid "Screenshot"
+msgstr "截图"
+
+#: apps/ppocr-gui/src/settings.rs:483
+msgid ""
+"Region and screen capture wait for desktop animations to settle after hiding "
+"the main window"
+msgstr "区域和屏幕截图会在隐藏主窗口后等待桌面动画稳定"
+
+#: apps/ppocr-gui/src/settings.rs:487
+msgid "Capture settling delay"
+msgstr "截图稳定延迟"
+
+#: apps/ppocr-gui/src/settings.rs:489
+msgid ""
+"Milliseconds; only affects region and screen capture, while window capture "
+"keeps the main window visible"
+msgstr "毫秒；仅影响区域和屏幕截图，窗口截图不会隐藏主窗口"
+
+#: apps/ppocr-gui/src/settings.rs:502
+msgid "Keyboard shortcuts"
+msgstr "快捷键"
+
+#: apps/ppocr-gui/src/settings.rs:504
+msgid "Use GTK accelerator syntax; leave a field empty to disable its shortcut"
+msgstr "使用 GTK 加速键格式；留空可停用快捷键"
+
+#: apps/ppocr-gui/src/settings.rs:508 apps/ppocr-gui/src/window.rs:597
+msgid "Open image"
+msgstr "打开图片"
+
+#: apps/ppocr-gui/src/settings.rs:509
+msgid "Paste image"
+msgstr "粘贴图片"
+
+#: apps/ppocr-gui/src/settings.rs:510 apps/ppocr-gui/src/window.rs:581
+msgid "Capture region"
+msgstr "区域截图"
+
+#: apps/ppocr-gui/src/settings.rs:511 apps/ppocr-gui/src/window.rs:582
+msgid "Capture screen"
+msgstr "屏幕截图"
+
+#: apps/ppocr-gui/src/settings.rs:512 apps/ppocr-gui/src/window.rs:583
+msgid "Capture window"
+msgstr "窗口截图"
+
+#: apps/ppocr-gui/src/settings.rs:514
+msgid "Start or repeat processing"
+msgstr "开始或重新处理"
+
+#: apps/ppocr-gui/src/settings.rs:517
+msgid "Copy all text"
+msgstr "复制全部文本"
+
+#: apps/ppocr-gui/src/settings.rs:518
+msgid "Show or hide results"
+msgstr "显示或隐藏结果"
+
+#: apps/ppocr-gui/src/settings.rs:519
+msgid "Open settings"
+msgstr "打开设置"
+
+#: apps/ppocr-gui/src/settings.rs:534
+msgid "Apply shortcuts"
+msgstr "应用快捷键"
+
+#: apps/ppocr-gui/src/settings.rs:536
+msgid ""
+"For example &lt;Primary&gt;V or &lt;Alt&gt;Print; shortcuts must be unique"
+msgstr "例如 &lt;Primary&gt;V 或 &lt;Alt&gt;Print；相同组合不能重复"
+
+#: apps/ppocr-gui/src/settings.rs:542
+msgid "Apply"
+msgstr "应用"
+
+#: apps/ppocr-gui/src/settings.rs:570
+msgid "Applied"
+msgstr "已应用"
+
+#: apps/ppocr-gui/src/settings.rs:618
+msgid "Model"
+msgstr "模型"
+
+#: apps/ppocr-gui/src/settings.rs:619
+msgid "Select the model used by this module"
+msgstr "选择该模块使用的模型"
+
+#: apps/ppocr-gui/src/settings.rs:662
+#, rust-format
+msgid "Invalid shortcut: {accelerator}"
+msgstr "无效快捷键：{accelerator}"
+
+#: apps/ppocr-gui/src/settings.rs:669
+#, rust-format
+msgid "Duplicate shortcut: {accelerator}"
+msgstr "快捷键重复：{accelerator}"
+
+#: apps/ppocr-gui/src/window.rs:61
+msgid "Process again"
+msgstr "重新处理"
+
+#: apps/ppocr-gui/src/window.rs:63 apps/ppocr-gui/src/window.rs:602
+msgid "Start processing"
+msgstr "开始处理"
+
+#: apps/ppocr-gui/src/window.rs:95
+msgid "Choose an image to start recognition"
+msgstr "请选择图片开始识别"
+
+#: apps/ppocr-gui/src/window.rs:129 apps/ppocr-gui/src/window.rs:154
+#, rust-format
+msgid "Selected text line {index}"
+msgstr "已选择文本行 {index}"
+
+#: apps/ppocr-gui/src/window.rs:137
+msgid "Switched to the processed image"
+msgstr "已切换到处理后图"
+
+#: apps/ppocr-gui/src/window.rs:139
+msgid "Switched to the original image"
+msgstr "已切换到原图"
+
+#: apps/ppocr-gui/src/window.rs:289
+#, rust-format
+msgid "IPC connected: {available} of {total} execution providers available"
+msgstr "IPC 已连接：{available} / {total} 个 Provider 可用"
+
+#: apps/ppocr-gui/src/window.rs:307
+#, rust-format
+msgid "Recognition complete · 1 line · {elapsed} ms"
+msgid_plural "Recognition complete · {count} lines · {elapsed} ms"
+msgstr[0] "识别完成 · {count} 行 · {elapsed} ms"
+
+#: apps/ppocr-gui/src/window.rs:317
+#, rust-format
+msgid ""
+"Recognition succeeded, but the preview image cannot be displayed: {error}"
+msgstr "识别成功，但预览图像无法显示：{error}"
+
+#: apps/ppocr-gui/src/window.rs:328
+msgid "Recognition failed"
+msgstr "识别失败"
+
+#: apps/ppocr-gui/src/window.rs:358
+#, rust-format
+msgid "Text line {index:02}  ·  Confidence {confidence:.1}%"
+msgstr "文本行 {index:02}  ·  置信度 {confidence:.1}%"
+
+#: apps/ppocr-gui/src/window.rs:403
+msgid "Recognition results"
+msgstr "识别结果"
+
+#: apps/ppocr-gui/src/window.rs:448
+msgid "Text"
+msgstr "文本"
+
+#: apps/ppocr-gui/src/window.rs:455
+msgid "Search text lines"
+msgstr "搜索文本行"
+
+#: apps/ppocr-gui/src/window.rs:469
+msgid "Copied the selected text line"
+msgstr "已复制所选文本行"
+
+#: apps/ppocr-gui/src/window.rs:472
+msgid "Text line copied to the clipboard"
+msgstr "文本行已复制到剪贴板"
+
+#: apps/ppocr-gui/src/window.rs:493
+msgid "Text lines"
+msgstr "文本行"
+
+#: apps/ppocr-gui/src/window.rs:509
+msgid "Restore result"
+msgstr "恢复结果"
+
+#: apps/ppocr-gui/src/window.rs:513
+msgid "Copy all"
+msgstr "复制全部"
+
+#: apps/ppocr-gui/src/window.rs:531 apps/ppocr-gui/src/window.rs:793
+msgid "Recognized text copied to the clipboard"
+msgstr "识别文本已复制到剪贴板"
+
+#: apps/ppocr-gui/src/window.rs:542
+msgid "Restored the original recognized text"
+msgstr "已恢复原始识别文本"
+
+#: apps/ppocr-gui/src/window.rs:576
+msgid "Native GTK4 frontend"
+msgstr "原生 GTK4 前端"
+
+#: apps/ppocr-gui/src/window.rs:585
+msgid "Capture and recognize"
+msgstr "截图识别"
+
+#: apps/ppocr-gui/src/window.rs:588
+msgid "Choose a capture target"
+msgstr "选择截图目标"
+
+#: apps/ppocr-gui/src/window.rs:593
+msgid "Select a screen region and recognize it  Ctrl+Shift+O"
+msgstr "框选屏幕区域并识别  Ctrl+Shift+O"
+
+#: apps/ppocr-gui/src/window.rs:599
+msgid "Choose an image file  Ctrl+O"
+msgstr "选择图片文件  Ctrl+O"
+
+#: apps/ppocr-gui/src/window.rs:606
+msgid "Start recognition with the current pipeline settings"
+msgstr "使用当前产线设置开始识别"
+
+#: apps/ppocr-gui/src/window.rs:615
+msgid "Model, pipeline, and interface settings  Ctrl+,"
+msgstr "模型、产线与界面设置  Ctrl+,"
+
+#: apps/ppocr-gui/src/window.rs:624
+msgid "Copy"
+msgstr "复制"
+
+#: apps/ppocr-gui/src/window.rs:626
+msgid "Copy all recognized text  Ctrl+Shift+C"
+msgstr "复制全部识别文本  Ctrl+Shift+C"
+
+#: apps/ppocr-gui/src/window.rs:631
+msgid "Show or hide recognition results"
+msgstr "显示或隐藏识别结果"
+
+#: apps/ppocr-gui/src/window.rs:715
+msgid "Preparing region capture"
+msgstr "正在准备区域截图"
+
+#: apps/ppocr-gui/src/window.rs:720
+msgid "Choose the screen to capture"
+msgstr "请选择要截取的屏幕"
+
+#: apps/ppocr-gui/src/window.rs:725
+msgid "Choose the window to capture"
+msgstr "请选择要截取的窗口"
+
+#: apps/ppocr-gui/src/window.rs:773
+msgid "Capture cancelled"
+msgstr "截图已取消"
+
+#: apps/ppocr-gui/src/window.rs:777
+msgid "Capture failed"
+msgstr "截图失败"
+
+#: apps/ppocr-gui/src/window.rs:848
+msgid "Supported images"
+msgstr "支持的图片"
+
+#: apps/ppocr-gui/src/window.rs:862
+msgid "Choose an image to recognize"
+msgstr "选择要识别的图片"
+
+#: apps/ppocr-gui/src/window.rs:863
+msgid "Open"
+msgstr "打开"
+
+#: apps/ppocr-gui/src/window.rs:878
+#, rust-format
+msgid "Failed to open the file chooser: {error}"
+msgstr "无法打开文件选择器：{error}"
+
+#: apps/ppocr-gui/src/window.rs:901
+msgid "Reading an image from the clipboard"
+msgstr "正在读取剪贴板图片"
+
+#: apps/ppocr-gui/src/window.rs:907
+msgid "Clipboard image.png"
+msgstr "剪贴板图片.png"
+
+#: apps/ppocr-gui/src/window.rs:917
+msgid "The clipboard does not contain an image"
+msgstr "剪贴板中没有图片"
+
+#: apps/ppocr-gui/src/window.rs:920
+msgid "No pasteable image was found on the clipboard"
+msgstr "剪贴板中没有可粘贴的图片"
+
+#: apps/ppocr-gui/src/window.rs:924
+msgid "Failed to read the clipboard"
+msgstr "读取剪贴板失败"
+
+#: apps/ppocr-gui/src/window.rs:927
+#, rust-format
+msgid "Failed to read the clipboard image: {error}"
+msgstr "无法读取剪贴板图片：{error}"
+
+#: apps/ppocr-gui/src/window.rs:946
+msgid "Reading the image"
+msgstr "正在读取图片"
+
+#: apps/ppocr-gui/src/window.rs:950
+msgid "Failed to read the image"
+msgstr "读取图片失败"
+
+#: apps/ppocr-gui/src/window.rs:953
+#, rust-format
+msgid "Failed to read the selected image: {error}"
+msgstr "无法读取所选图片：{error}"
+
+#: apps/ppocr-gui/src/window.rs:988
+msgid "The image file is too large"
+msgstr "图片文件过大"
+
+#: apps/ppocr-gui/src/window.rs:989
+msgid "The image file exceeds the 256 MiB IPC limit"
+msgstr "图片文件超过 256 MiB IPC 上限"
+
+#: apps/ppocr-gui/src/window.rs:993
+msgid "Unsupported image format"
+msgstr "不支持的图片格式"
+
+#: apps/ppocr-gui/src/window.rs:996
+msgid "The file is not a supported PNG, JPEG, WebP, TIFF, BMP, or GIF image"
+msgstr "文件内容不是受支持的 PNG、JPEG、WebP、TIFF、BMP 或 GIF 图片"
+
+#: apps/ppocr-gui/src/window.rs:1001
+msgid "Image preview failed"
+msgstr "图片预览失败"
+
+#: apps/ppocr-gui/src/window.rs:1005
+#, rust-format
+msgid "Failed to decode the selected image: {error}"
+msgstr "无法解码所选图片：{error}"
+
+#: apps/ppocr-gui/src/window.rs:1024
+msgid "The image is ready; click “Start processing” to recognize it"
+msgstr "图片已就绪，点击“开始处理”进行识别"
+
+#: apps/ppocr-gui/src/window.rs:1040
+msgid "Open, paste, or capture an image first"
+msgstr "请先打开、粘贴或截取一张图片"
+
+#: apps/ppocr-gui/src/window.rs:1045
+msgid "Connecting to the recognition backend"
+msgstr "正在连接识别后端"
+
+#: apps/ppocr-gui/src/window.rs:1068
+msgid "Export"
+msgstr "导出"
+
+#: apps/ppocr-gui/src/window.rs:1072 apps/ppocr-gui/src/window.rs:1081
+msgid "Export recognition results"
+msgstr "导出识别结果"
+
+#: apps/ppocr-gui/src/window.rs:1094
+#, rust-format
+msgid "Selected {format}"
+msgstr "已选择 {format}"
+
+#: apps/ppocr-gui/src/window.rs:1098
+#, rust-format
+msgid "Exporting {format} will be implemented in a later stage"
+msgstr "{format} 导出将在后续阶段实现"
+
+#: apps/ppocr-gui/src/window.rs:1107
+msgid "Searchable PDF (later stage)"
+msgstr "可搜索 PDF（后续阶段）"
+
+#: apps/ppocr-gui/src/window.rs:1110
+msgid "Requires PDF page rendering and text-layer coordinate mapping"
+msgstr "需要 PDF 页面渲染与文本层坐标映射"
+
+#: apps/ppocr-gui/src/window.rs:1122
+msgid "More options"
+msgstr "更多选项"
+
+#: apps/ppocr-gui/src/window.rs:1132
+msgid "About Paddle OCR"
+msgstr "关于 Paddle OCR"
+
+#: apps/ppocr-gui/src/window.rs:1142
+msgid "A PaddleOCR desktop frontend built with Rust, GTK4, and libadwaita"
+msgstr "基于 Rust、GTK4 和 libadwaita 的 PaddleOCR 桌面前端"
+
+#: apps/ppocr-gui/src/window.rs:1194
+#, rust-format
+msgid "1 line"
+msgid_plural "{count} lines"
+msgstr[0] "{count} 行"
+
+#: apps/ppocr-gui/src/window.rs:1198
+#, rust-format
+msgid "1 character"
+msgid_plural "{count} characters"
+msgstr[0] "{count} 个字符"
+
+#: apps/ppocr-worker/src/server.rs:331
+msgid "Preparing the selected models"
+msgstr "正在准备所选模型"
+
+#: apps/ppocr-worker/src/server.rs:405
+msgid "Decoding the image"
+msgstr "正在解码图片"
+
+#: apps/ppocr-worker/src/server.rs:508
+#, rust-format
+msgid "Downloading model ({index}/{count}) {completed}/{total} {model}"
+msgstr "正在下载模型（{index}/{count}）{completed}/{total} {model}"
+
+#: apps/ppocr-worker/src/server.rs:516
+#, rust-format
+msgid "Loading model ({index}/{count}) {model}"
+msgstr "正在加载模型（{index}/{count}）{model}"
+
+#: apps/ppocr-worker/src/main.rs:9
+#, rust-format
+msgid "OCR worker failed: {error}"
+msgstr "OCR worker 失败：{error}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:28
+msgid "Wayland physical screencopy is only available on Linux"
+msgstr "Wayland 物理屏幕捕获仅在 Linux 上可用"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:38
+#, rust-format
+msgid "Failed to connect to Wayland screencopy: {error}"
+msgstr "无法连接 Wayland screencopy：{error}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:47
+#, rust-format
+msgid "Wayland has no output named {name}"
+msgstr "Wayland 没有名为 {name} 的输出"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:49
+msgid "Wayland has no capturable output"
+msgstr "Wayland 没有可捕获的输出"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:52
+msgid "Wayland has multiple outputs but no target was specified"
+msgstr "存在多个 Wayland 输出，但没有指定目标输出"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:60
+#, rust-format
+msgid "Wayland physical-output capture failed: {error}"
+msgstr "Wayland 物理屏幕捕获失败：{error}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:75
+#, rust-format
+msgid "Failed to encode the Wayland screenshot: {error}"
+msgstr "无法编码 Wayland 屏幕截图：{error}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:84
+#, rust-format
+msgid "Failed to write the Wayland screenshot: {error}"
+msgstr "无法输出 Wayland 屏幕截图：{error}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:97
+#, rust-format
+msgid "Unknown argument: {flag}"
+msgstr "未知参数：{flag}"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:101
+msgid "--output requires an output name"
+msgstr "--output 缺少输出名称"
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:103
+msgid "Too many arguments"
+msgstr "参数过多"
+
+#: crates/ppocr-screenshot/src/layer_shell.rs:10
+msgid ""
+"The current Wayland compositor does not support wlr-layer-shell, so a "
+"screenshot selection overlay cannot be created"
+msgstr "当前 Wayland 合成器不支持 wlr-layer-shell，无法创建截图选择层"
+
+#: crates/ppocr-screenshot/src/lib.rs:44
+msgid "Screenshot capture is not supported on this platform yet"
+msgstr "当前平台暂不支持截图"
+
+#: crates/ppocr-screenshot/src/lib.rs:47
+#, rust-format
+msgid "Failed to capture the physical output: {error}"
+msgstr "捕获物理屏幕失败：{error}"
+
+#: crates/ppocr-screenshot/src/lib.rs:50
+#, rust-format
+msgid "Screenshot portal failed: {error}"
+msgstr "截图 portal 失败：{error}"
+
+#: crates/ppocr-screenshot/src/lib.rs:52
+#, rust-format
+msgid "Failed to prepare screenshot selection: {error}"
+msgstr "无法准备截图选择：{error}"
+
+#: crates/ppocr-screenshot/src/lib.rs:56
+#, rust-format
+msgid "Failed to capture window frame: {error}"
+msgstr "无法捕获窗口画面：{error}"
+
+#: crates/ppocr-screenshot/src/lib.rs:101
+msgid "Region capture.png"
+msgstr "区域截图.png"
+
+#: crates/ppocr-screenshot/src/lib.rs:108
+msgid "Screen capture.png"
+msgstr "屏幕截图.png"
+
+#: crates/ppocr-screenshot/src/lib.rs:140
+msgid "The current ScreenCast portal does not provide window capture"
+msgstr "当前 ScreenCast portal 不提供窗口捕获"
+
+#: crates/ppocr-screenshot/src/lib.rs:180
+msgid "The portal returned no video stream after selection"
+msgstr "选择完成但 portal 没有返回视频流"
+
+#: crates/ppocr-screenshot/src/lib.rs:192
+msgid "Window capture.png"
+msgstr "窗口截图.png"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:26
+#, rust-format
+msgid "Failed to start the PipeWire capture thread: {error}"
+msgstr "无法启动 PipeWire 捕获线程：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:32
+#, rust-format
+msgid "The PipeWire capture thread ended unexpectedly: {error}"
+msgstr "PipeWire 捕获线程意外结束：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:39
+#, rust-format
+msgid "Failed to initialize GStreamer: {error}"
+msgstr "无法初始化 GStreamer：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:50
+#, rust-format
+msgid "Failed to create the GStreamer PipeWire source: {error}"
+msgstr "无法创建 GStreamer PipeWire 输入：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:60
+#, rust-format
+msgid "Failed to create the DMA-BUF format filter: {error}"
+msgstr "无法创建 DMA-BUF 格式过滤器：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:68
+#, rust-format
+msgid "Failed to create the GStreamer DMA-BUF importer: {error}"
+msgstr "无法创建 GStreamer DMA-BUF 导入器：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:76
+#, rust-format
+msgid "Failed to create the GStreamer GL pixel converter: {error}"
+msgstr "无法创建 GStreamer GL 像素转换器：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:84
+#, rust-format
+msgid "Failed to create the GStreamer GL downloader: {error}"
+msgstr "无法创建 GStreamer GL 下载器：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:92
+#, rust-format
+msgid "Failed to create the GStreamer pixel converter: {error}"
+msgstr "无法创建 GStreamer 像素转换器：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:119
+#, rust-format
+msgid "Failed to assemble the GStreamer capture pipeline: {error}"
+msgstr "无法组装 GStreamer 截图产线：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:134
+#, rust-format
+msgid "Failed to link the GStreamer capture pipeline: {error}"
+msgstr "无法连接 GStreamer 截图产线：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:142
+#, rust-format
+msgid "GStreamer state change failed: {error}"
+msgstr "GStreamer 状态切换失败：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:148
+#, rust-format
+msgid "Failed to start the GStreamer capture pipeline: {detail}"
+msgstr "无法启动 GStreamer 截图产线：{detail}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:158
+#, rust-format
+msgid "Failed to stop the GStreamer capture pipeline: {error}"
+msgstr "无法停止 GStreamer 截图产线：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:173
+msgid "GStreamer could not create a surfaceless EGL display"
+msgstr "当前 GStreamer 无法创建无窗口 EGL 显示器"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:179
+#, rust-format
+msgid "Failed to create an EGL context for DMA-BUF negotiation: {error}"
+msgstr "无法创建用于 DMA-BUF 协商的 EGL 上下文：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:198
+msgid "The EGL driver reported no directly importable DMA-BUF formats"
+msgstr "当前 EGL 驱动没有报告可直接导入的 DMA-BUF 格式"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:204
+msgid "The EGL driver returned an empty DMA-BUF format list"
+msgstr "当前 EGL 驱动返回了空的 DMA-BUF 格式列表"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:220
+msgid "The EGL driver returned an invalid DMA-BUF format list"
+msgstr "EGL 驱动返回了无法解析的 DMA-BUF 格式列表"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:226
+msgid "The EGL driver returned a non-string DMA-BUF format"
+msgstr "EGL 驱动返回了非字符串 DMA-BUF 格式"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:246
+msgid "Unknown component"
+msgstr "未知组件"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:242
+#, rust-format
+msgid "{component}: {error}{debug}"
+msgstr "{component}：{error}{debug}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:253
+msgid "The PipeWire stream ended during startup"
+msgstr "PipeWire 流在启动时结束"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:263
+msgid "The GStreamer capture pipeline has no message bus"
+msgstr "GStreamer 截图产线没有消息总线"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:271
+#, rust-format
+msgid "GStreamer PipeWire stream error: {error}{debug}"
+msgstr "GStreamer PipeWire 流错误：{error}{debug}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:279
+msgid "The PipeWire stream ended before returning a frame"
+msgstr "PipeWire 流在返回截图前结束"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:285
+msgid "Timed out waiting for a PipeWire capture frame"
+msgstr "等待 PipeWire 截图帧超时"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:291
+msgid "The PipeWire capture frame has no video format"
+msgstr "PipeWire 截图帧缺少视频格式"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:294
+#, rust-format
+msgid "Failed to parse the PipeWire video format: {error}"
+msgstr "无法解析 PipeWire 视频格式：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:300
+#, rust-format
+msgid "GStreamer returned the unexpected pixel format {format}"
+msgstr "GStreamer 返回了意外的像素格式 {format}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:306
+msgid "The PipeWire capture sample has no pixel buffer"
+msgstr "PipeWire 截图样本没有像素缓冲区"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:310
+#, rust-format
+msgid "Failed to map the PipeWire capture frame: {error}"
+msgstr "无法映射 PipeWire 截图帧：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:317
+msgid "The PipeWire capture frame has no color plane"
+msgstr "PipeWire 截图帧没有颜色平面"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:320
+#, rust-format
+msgid "Failed to read PipeWire capture pixels: {error}"
+msgstr "无法读取 PipeWire 截图像素：{error}"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:330
+msgid "Capture width overflow"
+msgstr "截图宽度溢出"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:332
+msgid "The PipeWire frame stride is smaller than an RGBA row"
+msgstr "PipeWire 帧行跨度小于 RGBA 像素行宽"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:338
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:345
+msgid "Capture dimensions overflow"
+msgstr "截图尺寸溢出"
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:340
+msgid "The PipeWire capture pixel buffer is incomplete"
+msgstr "PipeWire 截图像素缓冲区不完整"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:20
+#, rust-format
+msgid "Failed to start the physical-output capture thread: {error}"
+msgstr "无法启动物理屏幕捕获线程：{error}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:26
+#, rust-format
+msgid "The physical-output capture thread ended unexpectedly: {error}"
+msgstr "物理屏幕捕获线程意外结束：{error}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:45
+#, rust-format
+msgid "Failed to start {helper}: {error}"
+msgstr "无法启动 {helper}：{error}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:53
+msgid "The physical-output capture helper has no standard output"
+msgstr "物理屏幕捕获辅助进程没有标准输出"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:57
+msgid "The physical-output capture helper has no error output"
+msgstr "物理屏幕捕获辅助进程没有错误输出"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:70
+#, rust-format
+msgid "Failed to read the physical-output capture: {error}"
+msgstr "读取物理屏幕截图失败：{error}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:76
+#, rust-format
+msgid "Failed to wait for the physical-output capture helper: {error}"
+msgstr "等待物理屏幕捕获辅助进程失败：{error}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:85
+#, rust-format
+msgid "The physical-output capture helper exited: {status}"
+msgstr "物理屏幕捕获辅助进程退出：{status}"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:94
+msgid "The physical-output capture exceeds the 256 MiB safety limit"
+msgstr "物理屏幕截图超过 256 MiB 安全限制"
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:99
+msgid "The physical-output capture helper returned an empty image"
+msgstr "物理屏幕捕获辅助进程返回了空图像"
+
+#: crates/ppocr-screenshot/src/selector.rs:201
+msgid "Select capture region"
+msgstr "选择截图区域"
+
+#: crates/ppocr-screenshot/src/selector.rs:217
+msgid ""
+"Drag to select · Move or drag handles to adjust · Enter to confirm · Esc to "
+"cancel"
+msgstr "拖拽框选区域 · 可移动或拖动控制点调整 · Enter 确认 · Esc 取消"
+
+#: crates/ppocr-screenshot/src/selector.rs:225
+msgid "Drag to select a capture region"
+msgstr "拖拽以选择截图区域"
+
+#: crates/ppocr-screenshot/src/selector.rs:227
+msgid "Cancel"
+msgstr "取消"
+
+#: crates/ppocr-screenshot/src/selector.rs:228
+msgid "Select entire desktop"
+msgstr "选择整个桌面"
+
+#: crates/ppocr-screenshot/src/selector.rs:230
+msgid "Confirm selected region"
+msgstr "确认所选区域"
+
+#: crates/ppocr-screenshot/src/selector.rs:380
+msgid "The capture decoder returned no image"
+msgstr "截图解码器没有返回图像"
+
+#: crates/ppocr-screenshot/src/selector.rs:386
+msgid "The capture region is too small"
+msgstr "截图区域过小"
+
+#: crates/ppocr-screenshot/src/selector.rs:516
+msgid "The capture region is too small; please select it again"
+msgstr "截图区域过小，请重新框选"
+
+#: crates/ppocr-screenshot/src/selector.rs:665
+#, rust-format
+msgid "{width} × {height} pixels"
+msgstr "{width} × {height} 像素"

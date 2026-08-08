@@ -11,6 +11,7 @@ use gstreamer_gl as gst_gl;
 use gstreamer_gl::prelude::*;
 use gstreamer_video as gst_video;
 use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use ppocr_i18n::tr;
 
 pub async fn capture_png(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> {
     let (sender, receiver) = async_channel::bounded(1);
@@ -20,15 +21,22 @@ pub async fn capture_png(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> {
             let result = capture_with_gstreamer(node_id, fd);
             let _ = sender.send_blocking(result);
         })
-        .map_err(|error| format!("无法启动 PipeWire 捕获线程：{error}"))?;
-    receiver
-        .recv()
-        .await
-        .map_err(|error| format!("PipeWire 捕获线程意外结束：{error}"))?
+        .map_err(|error| {
+            tr!(
+                "Failed to start the PipeWire capture thread: {error}",
+                error = error
+            )
+        })?;
+    receiver.recv().await.map_err(|error| {
+        tr!(
+            "The PipeWire capture thread ended unexpectedly: {error}",
+            error = error
+        )
+    })?
 }
 
 fn capture_with_gstreamer(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> {
-    gst::init().map_err(|error| format!("无法初始化 GStreamer：{error}"))?;
+    gst::init().map_err(|error| tr!("Failed to initialize GStreamer: {error}", error = error))?;
 
     let dma_buf_caps = dma_buf_import_caps()?;
     let source = gst::ElementFactory::make("pipewiresrc")
@@ -37,24 +45,54 @@ fn capture_with_gstreamer(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> 
         .property("path", node_id.to_string())
         .property("do-timestamp", true)
         .build()
-        .map_err(|error| format!("无法创建 GStreamer PipeWire 输入：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the GStreamer PipeWire source: {error}",
+                error = error
+            )
+        })?;
     let dma_buf_filter = gst::ElementFactory::make("capsfilter")
         .name("portal-dma-buf-format")
         .property("caps", &dma_buf_caps)
         .build()
-        .map_err(|error| format!("无法创建 DMA-BUF 格式过滤器：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the DMA-BUF format filter: {error}",
+                error = error
+            )
+        })?;
     let upload = gst::ElementFactory::make("glupload")
         .build()
-        .map_err(|error| format!("无法创建 GStreamer DMA-BUF 导入器：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the GStreamer DMA-BUF importer: {error}",
+                error = error
+            )
+        })?;
     let gl_convert = gst::ElementFactory::make("glcolorconvert")
         .build()
-        .map_err(|error| format!("无法创建 GStreamer GL 像素转换器：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the GStreamer GL pixel converter: {error}",
+                error = error
+            )
+        })?;
     let download = gst::ElementFactory::make("gldownload")
         .build()
-        .map_err(|error| format!("无法创建 GStreamer GL 下载器：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the GStreamer GL downloader: {error}",
+                error = error
+            )
+        })?;
     let convert = gst::ElementFactory::make("videoconvert")
         .build()
-        .map_err(|error| format!("无法创建 GStreamer 像素转换器：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create the GStreamer pixel converter: {error}",
+                error = error
+            )
+        })?;
     let caps = gst::Caps::builder("video/x-raw")
         .field("format", "RGBA")
         .build();
@@ -76,7 +114,12 @@ fn capture_with_gstreamer(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> 
             &convert,
             sink.upcast_ref(),
         ])
-        .map_err(|error| format!("无法组装 GStreamer 截图产线：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to assemble the GStreamer capture pipeline: {error}",
+                error = error
+            )
+        })?;
     gst::Element::link_many([
         &source,
         &dma_buf_filter,
@@ -86,20 +129,35 @@ fn capture_with_gstreamer(node_id: u32, fd: OwnedFd) -> Result<Vec<u8>, String> 
         &convert,
         sink.upcast_ref(),
     ])
-    .map_err(|error| format!("无法连接 GStreamer 截图产线：{error}"))?;
+    .map_err(|error| {
+        tr!(
+            "Failed to link the GStreamer capture pipeline: {error}",
+            error = error
+        )
+    })?;
 
     if let Err(error) = pipeline.set_state(gst::State::Playing) {
-        let detail = wait_for_bus_failure(&pipeline, 10)
-            .unwrap_or_else(|| format!("GStreamer 状态切换失败：{error:?}"));
+        let detail = wait_for_bus_failure(&pipeline, 10).unwrap_or_else(|| {
+            tr!(
+                "GStreamer state change failed: {error}",
+                error = format!("{error:?}")
+            )
+        });
         let _ = pipeline.set_state(gst::State::Null);
-        return Err(format!("无法启动 GStreamer 截图产线：{detail}"));
+        return Err(tr!(
+            "Failed to start the GStreamer capture pipeline: {detail}",
+            detail = detail
+        ));
     }
     let result = pull_first_frame(&pipeline, &sink);
     let stop_result = pipeline.set_state(gst::State::Null);
     if let Err(error) = stop_result
         && result.is_ok()
     {
-        return Err(format!("无法停止 GStreamer 截图产线：{error:?}"));
+        return Err(tr!(
+            "Failed to stop the GStreamer capture pipeline: {error}",
+            error = format!("{error:?}")
+        ));
     }
     result
 }
@@ -112,11 +170,16 @@ fn dma_buf_import_caps() -> Result<gst::Caps, String> {
     };
 
     let display = gst_gl::GLDisplay::with_type(gst_gl::GLDisplayType::EGL_SURFACELESS)
-        .ok_or_else(|| "当前 GStreamer 无法创建无窗口 EGL 显示器".to_owned())?;
+        .ok_or_else(|| tr!("GStreamer could not create a surfaceless EGL display"))?;
     let context = gst_gl::GLContext::new(&display);
     context
         .create(None::<&gst_gl::GLContext>)
-        .map_err(|error| format!("无法创建用于 DMA-BUF 协商的 EGL 上下文：{error}"))?;
+        .map_err(|error| {
+            tr!(
+                "Failed to create an EGL context for DMA-BUF negotiation: {error}",
+                error = error
+            )
+        })?;
 
     let source_format = "RGBA".to_value();
     let mut drm_formats: glib::Value = unsafe { glib::translate::uninitialized() };
@@ -131,12 +194,14 @@ fn dma_buf_import_caps() -> Result<gst::Caps, String> {
         ) != glib::ffi::GFALSE
     };
     if !transformed {
-        return Err("当前 EGL 驱动没有报告可直接导入的 DMA-BUF 格式".to_owned());
+        return Err(tr!(
+            "The EGL driver reported no directly importable DMA-BUF formats"
+        ));
     }
 
     let drm_formats = value_strings(&drm_formats)?;
     if drm_formats.is_empty() {
-        return Err("当前 EGL 驱动返回了空的 DMA-BUF 格式列表".to_owned());
+        return Err(tr!("The EGL driver returned an empty DMA-BUF format list"));
     }
     let drm_formats = gst::List::new(drm_formats);
     Ok(gst::Caps::builder("video/x-raw")
@@ -152,13 +217,13 @@ fn value_strings(value: &gst::glib::Value) -> Result<Vec<String>, String> {
     }
     let values = value
         .get::<gst::List>()
-        .map_err(|_| "EGL 驱动返回了无法解析的 DMA-BUF 格式列表".to_owned())?;
+        .map_err(|_| tr!("The EGL driver returned an invalid DMA-BUF format list"))?;
     values
         .iter()
         .map(|value| {
             value
                 .get::<String>()
-                .map_err(|_| "EGL 驱动返回了非字符串 DMA-BUF 格式".to_owned())
+                .map_err(|_| tr!("The EGL driver returned a non-string DMA-BUF format"))
         })
         .collect()
 }
@@ -173,19 +238,19 @@ fn wait_for_bus_failure(pipeline: &gst::Pipeline, attempts: usize) -> Option<Str
             continue;
         };
         return Some(match message.view() {
-            gst::MessageView::Error(error) => format!(
-                "{}：{}{}",
-                message
+            gst::MessageView::Error(error) => tr!(
+                "{component}: {error}{debug}",
+                component = message
                     .src()
                     .map(|source| source.path_string().to_string())
-                    .unwrap_or_else(|| "未知组件".to_owned()),
-                error.error(),
-                error
+                    .unwrap_or_else(|| tr!("Unknown component")),
+                error = error.error(),
+                debug = error
                     .debug()
-                    .map(|debug| format!("（{debug}）"))
+                    .map(|debug| format!(" ({debug})"))
                     .unwrap_or_default()
             ),
-            gst::MessageView::Eos(_) => "PipeWire 流在启动时结束".to_owned(),
+            gst::MessageView::Eos(_) => tr!("The PipeWire stream ended during startup"),
             _ => unreachable!("the bus filter only returns error or EOS messages"),
         });
     }
@@ -195,75 +260,89 @@ fn wait_for_bus_failure(pipeline: &gst::Pipeline, attempts: usize) -> Option<Str
 fn pull_first_frame(pipeline: &gst::Pipeline, sink: &gst_app::AppSink) -> Result<Vec<u8>, String> {
     let bus = pipeline
         .bus()
-        .ok_or_else(|| "GStreamer 截图产线没有消息总线".to_owned())?;
+        .ok_or_else(|| tr!("The GStreamer capture pipeline has no message bus"))?;
     for _ in 0..120 {
         if let Some(sample) = sink.try_pull_sample(gst::ClockTime::from_mseconds(100)) {
             return encode_sample(&sample);
         }
         if let Some(message) = bus.pop_filtered(&[gst::MessageType::Error, gst::MessageType::Eos]) {
             return match message.view() {
-                gst::MessageView::Error(error) => Err(format!(
-                    "GStreamer PipeWire 流错误：{}{}",
-                    error.error(),
-                    error
+                gst::MessageView::Error(error) => Err(tr!(
+                    "GStreamer PipeWire stream error: {error}{debug}",
+                    error = error.error(),
+                    debug = error
                         .debug()
-                        .map(|debug| format!("（{debug}）"))
+                        .map(|debug| format!(" ({debug})"))
                         .unwrap_or_default()
                 )),
-                gst::MessageView::Eos(_) => Err("PipeWire 流在返回截图前结束".to_owned()),
+                gst::MessageView::Eos(_) => {
+                    Err(tr!("The PipeWire stream ended before returning a frame"))
+                }
                 _ => unreachable!("the bus filter only returns error or EOS messages"),
             };
         }
     }
-    Err("等待 PipeWire 截图帧超时".to_owned())
+    Err(tr!("Timed out waiting for a PipeWire capture frame"))
 }
 
 fn encode_sample(sample: &gst::Sample) -> Result<Vec<u8>, String> {
     let caps = sample
         .caps()
-        .ok_or_else(|| "PipeWire 截图帧缺少视频格式".to_owned())?;
-    let info = gst_video::VideoInfo::from_caps(caps)
-        .map_err(|error| format!("无法解析 PipeWire 视频格式：{error}"))?;
+        .ok_or_else(|| tr!("The PipeWire capture frame has no video format"))?;
+    let info = gst_video::VideoInfo::from_caps(caps).map_err(|error| {
+        tr!(
+            "Failed to parse the PipeWire video format: {error}",
+            error = error
+        )
+    })?;
     if info.format() != gst_video::VideoFormat::Rgba {
-        return Err(format!(
-            "GStreamer 返回了意外的像素格式 {:?}",
-            info.format()
+        return Err(tr!(
+            "GStreamer returned the unexpected pixel format {format}",
+            format = format!("{:?}", info.format())
         ));
     }
     let buffer = sample
         .buffer()
-        .ok_or_else(|| "PipeWire 截图样本没有像素缓冲区".to_owned())?;
-    let frame = gst_video::VideoFrameRef::from_buffer_ref_readable(buffer, &info)
-        .map_err(|error| format!("无法映射 PipeWire 截图帧：{error}"))?;
+        .ok_or_else(|| tr!("The PipeWire capture sample has no pixel buffer"))?;
+    let frame =
+        gst_video::VideoFrameRef::from_buffer_ref_readable(buffer, &info).map_err(|error| {
+            tr!(
+                "Failed to map the PipeWire capture frame: {error}",
+                error = error
+            )
+        })?;
     let stride = *frame
         .plane_stride()
         .first()
-        .ok_or_else(|| "PipeWire 截图帧没有颜色平面".to_owned())?;
-    let pixels = frame
-        .plane_data(0)
-        .map_err(|error| format!("无法读取 PipeWire 截图像素：{error}"))?;
+        .ok_or_else(|| tr!("The PipeWire capture frame has no color plane"))?;
+    let pixels = frame.plane_data(0).map_err(|error| {
+        tr!(
+            "Failed to read PipeWire capture pixels: {error}",
+            error = error
+        )
+    })?;
     encode_rgba_png(info.width(), info.height(), stride, pixels)
 }
 
 fn encode_rgba_png(width: u32, height: u32, stride: i32, pixels: &[u8]) -> Result<Vec<u8>, String> {
     let row_bytes = (width as usize)
         .checked_mul(4)
-        .ok_or_else(|| "截图宽度溢出".to_owned())?;
+        .ok_or_else(|| tr!("Capture width overflow"))?;
     if stride < 0 || (stride as usize) < row_bytes {
-        return Err("PipeWire 帧行跨度小于 RGBA 像素行宽".to_owned());
+        return Err(tr!("The PipeWire frame stride is smaller than an RGBA row"));
     }
     let stride = stride as usize;
     let required = stride
         .checked_mul(height.saturating_sub(1) as usize)
         .and_then(|offset| offset.checked_add(row_bytes))
-        .ok_or_else(|| "截图尺寸溢出".to_owned())?;
+        .ok_or_else(|| tr!("Capture dimensions overflow"))?;
     if pixels.len() < required {
-        return Err("PipeWire 截图像素缓冲区不完整".to_owned());
+        return Err(tr!("The PipeWire capture pixel buffer is incomplete"));
     }
     let mut rgba = Vec::with_capacity(
         row_bytes
             .checked_mul(height as usize)
-            .ok_or_else(|| "截图尺寸溢出".to_owned())?,
+            .ok_or_else(|| tr!("Capture dimensions overflow"))?,
     );
     for y in 0..height as usize {
         let start = y * stride;

@@ -11,6 +11,7 @@ use adw::prelude::*;
 use gtk::glib;
 
 fn main() -> glib::ExitCode {
+    ppocr_i18n::init().expect("failed to initialize translations");
     let application = adw::Application::builder()
         .application_id("io.github.ppocr_rs.PaddleOCR")
         .build();

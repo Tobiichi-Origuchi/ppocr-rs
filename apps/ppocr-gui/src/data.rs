@@ -59,16 +59,18 @@ pub const RUNTIME_PROVIDERS: &[&str] = &[
     "MIGraphX (AMD ROCm)",
 ];
 
-pub const EXPORT_FORMATS: &[&str] = &[
-    "纯文本 (.txt)",
-    "Markdown (.md)",
-    "JSON (.json)",
-    "CSV (.csv)",
-    "TSV (.tsv)",
-    "hOCR (.html)",
-    "ALTO XML (.xml)",
-    "标注图片 (.png)",
-];
+pub fn export_formats() -> Vec<String> {
+    vec![
+        ppocr_i18n::tr!("Plain text (.txt)"),
+        ppocr_i18n::tr!("Markdown (.md)"),
+        ppocr_i18n::tr!("JSON (.json)"),
+        ppocr_i18n::tr!("CSV (.csv)"),
+        ppocr_i18n::tr!("TSV (.tsv)"),
+        ppocr_i18n::tr!("hOCR (.html)"),
+        ppocr_i18n::tr!("ALTO XML (.xml)"),
+        ppocr_i18n::tr!("Annotated image (.png)"),
+    ]
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RectF {

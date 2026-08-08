@@ -1,0 +1,1174 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the ppocr-rs package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ppocr-rs 0.1.0\n"
+"Report-Msgid-Bugs-To: ppocr-rs\n"
+"POT-Creation-Date: 2026-08-08 15:44+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: apps/ppocr-gui/src/backend.rs:115
+msgid "Restarting the recognition process to apply the configuration"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:170
+msgid "Starting the recognition process"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:205
+#, rust-format
+msgid "The recognition process exited unexpectedly: {description}"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:255
+msgid "Loading models and initializing the pipeline"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:263
+msgid "Recognizing the image"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:275
+msgid "Image"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:368
+#, rust-format
+msgid "Recognition backend error ({code}): {message}"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:530
+#, rust-format
+msgid "Failed to resolve the current executable: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:534
+#, rust-format
+msgid "Failed to start OCR worker {path}: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:539
+#, rust-format
+msgid "The OCR worker did not expose its {pipe} pipe"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:542
+#, rust-format
+msgid "Failed to create an OCR worker I/O thread: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/backend.rs:545
+msgid "The OCR worker command channel closed"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:179
+msgid "The platform configuration directory is unavailable"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:182
+#, rust-format
+msgid "Configuration path {path} has no parent directory"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:186
+#, rust-format
+msgid "Failed to create configuration directory {path}: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:191
+#, rust-format
+msgid "Failed to read configuration {path}: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:196
+#, rust-format
+msgid "Failed to parse configuration {path}: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:201
+#, rust-format
+msgid "Configuration {path} uses unsupported version {version}"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:207
+#, rust-format
+msgid "Failed to serialize the configuration: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/config.rs:212
+#, rust-format
+msgid "Failed to write configuration {path}: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:64
+msgid "Plain text (.txt)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:65
+msgid "Markdown (.md)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:66
+msgid "JSON (.json)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:67
+msgid "CSV (.csv)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:68
+msgid "TSV (.tsv)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:69
+msgid "hOCR (.html)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:70
+msgid "ALTO XML (.xml)"
+msgstr ""
+
+#: apps/ppocr-gui/src/data.rs:71
+msgid "Annotated image (.png)"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:59
+msgid "Ready to process"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:79 apps/ppocr-gui/src/window.rs:59
+msgid "Processing"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:84
+msgid "Preparing recognition…"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:111
+msgid "Recognition complete"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:129
+msgid "Processing failed"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:155
+msgid "Document preview"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:158
+msgid "No image opened"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:170
+msgid "Waiting for an image"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:191
+msgid "OCR document preview"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:243
+msgid "Processed image"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:245
+msgid "Original image"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:281
+msgid "Processing image…"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:310
+msgid "Show text boxes"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:323
+msgid "Zoom out"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:330
+msgid "Preview zoom"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:335
+msgid "Zoom in"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:338
+msgid "Fit to window"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:347
+msgid "Page 1 of 1"
+msgstr ""
+
+#: apps/ppocr-gui/src/preview.rs:472
+msgid "Open an image to start recognition"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:53
+#, rust-format
+msgid "Failed to read the configuration file; using defaults: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:200
+msgid "Settings"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:215
+msgid "Models and pipeline"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:218
+msgid ""
+"Choose the required OCR models and enable the three preprocessing modules as "
+"needed"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:223
+msgid "Required models"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:225
+msgid "Text detection and text recognition are always enabled"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:229
+msgid "Text detection model"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:230
+msgid "Locates text regions in the image"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:236
+msgid "Text recognition model"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:237
+msgid "Converts cropped text lines into characters"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:260
+msgid "Optional modules"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:262
+msgid "Each module can be enabled independently and use its own selected model"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:268
+msgid "Document image orientation classification"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:269
+msgid "Detects 0°, 90°, 180°, or 270° page rotation"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:290
+msgid "Document image rectification"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:291
+msgid "Uses UVDoc to correct document perspective and curved distortion"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:312
+msgid "Text-line orientation classification"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:313
+msgid "Corrects individual text-line orientation before recognition"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:340
+msgid "Runtime and output"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:343
+msgid "Device availability is verified after the IPC backend connects"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:348
+msgid "Inference"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:351
+msgid "Inference device"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:352
+msgid "An unavailable execution provider will not silently fall back"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:360
+msgid "Minimum confidence"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:361
+msgid "Recognized text below this score is filtered out"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:381
+msgid "Recognition process"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:384
+msgid "Process immediately"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:386
+msgid ""
+"Start recognition automatically after opening, pasting, or capturing an "
+"image; off by default"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:391
+msgid "Keep the recognition process running"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:392
+msgid "Avoid repeated model-loading delays"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:396
+msgid "Idle timeout"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:397
+msgid "Minutes"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:428 apps/ppocr-gui/src/window.rs:629
+msgid "Results"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:431
+msgid "Return word-level text boxes"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:433
+msgid "Generated only for recognition models that support character alignment"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:450
+msgid "Interface"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:455
+msgid "Appearance"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Follow system"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Light"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:457
+msgid "Dark"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:459
+msgid "Theme"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:460
+msgid "GTK follows desktop colors and accessibility settings"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:481
+msgid "Screenshot"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:483
+msgid ""
+"Region and screen capture wait for desktop animations to settle after hiding "
+"the main window"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:487
+msgid "Capture settling delay"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:489
+msgid ""
+"Milliseconds; only affects region and screen capture, while window capture "
+"keeps the main window visible"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:502
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:504
+msgid "Use GTK accelerator syntax; leave a field empty to disable its shortcut"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:508 apps/ppocr-gui/src/window.rs:597
+msgid "Open image"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:509
+msgid "Paste image"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:510 apps/ppocr-gui/src/window.rs:581
+msgid "Capture region"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:511 apps/ppocr-gui/src/window.rs:582
+msgid "Capture screen"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:512 apps/ppocr-gui/src/window.rs:583
+msgid "Capture window"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:514
+msgid "Start or repeat processing"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:517
+msgid "Copy all text"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:518
+msgid "Show or hide results"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:519
+msgid "Open settings"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:534
+msgid "Apply shortcuts"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:536
+msgid ""
+"For example &lt;Primary&gt;V or &lt;Alt&gt;Print; shortcuts must be unique"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:542
+msgid "Apply"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:570
+msgid "Applied"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:618
+msgid "Model"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:619
+msgid "Select the model used by this module"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:662
+#, rust-format
+msgid "Invalid shortcut: {accelerator}"
+msgstr ""
+
+#: apps/ppocr-gui/src/settings.rs:669
+#, rust-format
+msgid "Duplicate shortcut: {accelerator}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:61
+msgid "Process again"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:63 apps/ppocr-gui/src/window.rs:602
+msgid "Start processing"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:95
+msgid "Choose an image to start recognition"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:129 apps/ppocr-gui/src/window.rs:154
+#, rust-format
+msgid "Selected text line {index}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:137
+msgid "Switched to the processed image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:139
+msgid "Switched to the original image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:289
+#, rust-format
+msgid "IPC connected: {available} of {total} execution providers available"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:307
+#, rust-format
+msgid "Recognition complete · 1 line · {elapsed} ms"
+msgid_plural "Recognition complete · {count} lines · {elapsed} ms"
+msgstr[0] ""
+msgstr[1] ""
+
+#: apps/ppocr-gui/src/window.rs:317
+#, rust-format
+msgid ""
+"Recognition succeeded, but the preview image cannot be displayed: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:328
+msgid "Recognition failed"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:358
+#, rust-format
+msgid "Text line {index:02}  ·  Confidence {confidence:.1}%"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:403
+msgid "Recognition results"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:448
+msgid "Text"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:455
+msgid "Search text lines"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:469
+msgid "Copied the selected text line"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:472
+msgid "Text line copied to the clipboard"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:493
+msgid "Text lines"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:509
+msgid "Restore result"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:513
+msgid "Copy all"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:531 apps/ppocr-gui/src/window.rs:793
+msgid "Recognized text copied to the clipboard"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:542
+msgid "Restored the original recognized text"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:576
+msgid "Native GTK4 frontend"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:585
+msgid "Capture and recognize"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:588
+msgid "Choose a capture target"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:593
+msgid "Select a screen region and recognize it  Ctrl+Shift+O"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:599
+msgid "Choose an image file  Ctrl+O"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:606
+msgid "Start recognition with the current pipeline settings"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:615
+msgid "Model, pipeline, and interface settings  Ctrl+,"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:624
+msgid "Copy"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:626
+msgid "Copy all recognized text  Ctrl+Shift+C"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:631
+msgid "Show or hide recognition results"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:715
+msgid "Preparing region capture"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:720
+msgid "Choose the screen to capture"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:725
+msgid "Choose the window to capture"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:773
+msgid "Capture cancelled"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:777
+msgid "Capture failed"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:848
+msgid "Supported images"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:862
+msgid "Choose an image to recognize"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:863
+msgid "Open"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:878
+#, rust-format
+msgid "Failed to open the file chooser: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:901
+msgid "Reading an image from the clipboard"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:907
+msgid "Clipboard image.png"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:917
+msgid "The clipboard does not contain an image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:920
+msgid "No pasteable image was found on the clipboard"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:924
+msgid "Failed to read the clipboard"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:927
+#, rust-format
+msgid "Failed to read the clipboard image: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:946
+msgid "Reading the image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:950
+msgid "Failed to read the image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:953
+#, rust-format
+msgid "Failed to read the selected image: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:988
+msgid "The image file is too large"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:989
+msgid "The image file exceeds the 256 MiB IPC limit"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:993
+msgid "Unsupported image format"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:996
+msgid "The file is not a supported PNG, JPEG, WebP, TIFF, BMP, or GIF image"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1001
+msgid "Image preview failed"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1005
+#, rust-format
+msgid "Failed to decode the selected image: {error}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1024
+msgid "The image is ready; click “Start processing” to recognize it"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1040
+msgid "Open, paste, or capture an image first"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1045
+msgid "Connecting to the recognition backend"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1068
+msgid "Export"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1072 apps/ppocr-gui/src/window.rs:1081
+msgid "Export recognition results"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1094
+#, rust-format
+msgid "Selected {format}"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1098
+#, rust-format
+msgid "Exporting {format} will be implemented in a later stage"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1107
+msgid "Searchable PDF (later stage)"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1110
+msgid "Requires PDF page rendering and text-layer coordinate mapping"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1122
+msgid "More options"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1132
+msgid "About Paddle OCR"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1142
+msgid "A PaddleOCR desktop frontend built with Rust, GTK4, and libadwaita"
+msgstr ""
+
+#: apps/ppocr-gui/src/window.rs:1194
+#, rust-format
+msgid "1 line"
+msgid_plural "{count} lines"
+msgstr[0] ""
+msgstr[1] ""
+
+#: apps/ppocr-gui/src/window.rs:1198
+#, rust-format
+msgid "1 character"
+msgid_plural "{count} characters"
+msgstr[0] ""
+msgstr[1] ""
+
+#: apps/ppocr-worker/src/server.rs:331
+msgid "Preparing the selected models"
+msgstr ""
+
+#: apps/ppocr-worker/src/server.rs:405
+msgid "Decoding the image"
+msgstr ""
+
+#: apps/ppocr-worker/src/server.rs:508
+#, rust-format
+msgid "Downloading model ({index}/{count}) {completed}/{total} {model}"
+msgstr ""
+
+#: apps/ppocr-worker/src/server.rs:516
+#, rust-format
+msgid "Loading model ({index}/{count}) {model}"
+msgstr ""
+
+#: apps/ppocr-worker/src/main.rs:9
+#, rust-format
+msgid "OCR worker failed: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:28
+msgid "Wayland physical screencopy is only available on Linux"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:38
+#, rust-format
+msgid "Failed to connect to Wayland screencopy: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:47
+#, rust-format
+msgid "Wayland has no output named {name}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:49
+msgid "Wayland has no capturable output"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:52
+msgid "Wayland has multiple outputs but no target was specified"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:60
+#, rust-format
+msgid "Wayland physical-output capture failed: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:75
+#, rust-format
+msgid "Failed to encode the Wayland screenshot: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:84
+#, rust-format
+msgid "Failed to write the Wayland screenshot: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:97
+#, rust-format
+msgid "Unknown argument: {flag}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:101
+msgid "--output requires an output name"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs:103
+msgid "Too many arguments"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/layer_shell.rs:10
+msgid ""
+"The current Wayland compositor does not support wlr-layer-shell, so a "
+"screenshot selection overlay cannot be created"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:44
+msgid "Screenshot capture is not supported on this platform yet"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:47
+#, rust-format
+msgid "Failed to capture the physical output: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:50
+#, rust-format
+msgid "Screenshot portal failed: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:52
+#, rust-format
+msgid "Failed to prepare screenshot selection: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:56
+#, rust-format
+msgid "Failed to capture window frame: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:101
+msgid "Region capture.png"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:108
+msgid "Screen capture.png"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:140
+msgid "The current ScreenCast portal does not provide window capture"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:180
+msgid "The portal returned no video stream after selection"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/lib.rs:192
+msgid "Window capture.png"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:26
+#, rust-format
+msgid "Failed to start the PipeWire capture thread: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:32
+#, rust-format
+msgid "The PipeWire capture thread ended unexpectedly: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:39
+#, rust-format
+msgid "Failed to initialize GStreamer: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:50
+#, rust-format
+msgid "Failed to create the GStreamer PipeWire source: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:60
+#, rust-format
+msgid "Failed to create the DMA-BUF format filter: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:68
+#, rust-format
+msgid "Failed to create the GStreamer DMA-BUF importer: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:76
+#, rust-format
+msgid "Failed to create the GStreamer GL pixel converter: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:84
+#, rust-format
+msgid "Failed to create the GStreamer GL downloader: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:92
+#, rust-format
+msgid "Failed to create the GStreamer pixel converter: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:119
+#, rust-format
+msgid "Failed to assemble the GStreamer capture pipeline: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:134
+#, rust-format
+msgid "Failed to link the GStreamer capture pipeline: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:142
+#, rust-format
+msgid "GStreamer state change failed: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:148
+#, rust-format
+msgid "Failed to start the GStreamer capture pipeline: {detail}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:158
+#, rust-format
+msgid "Failed to stop the GStreamer capture pipeline: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:173
+msgid "GStreamer could not create a surfaceless EGL display"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:179
+#, rust-format
+msgid "Failed to create an EGL context for DMA-BUF negotiation: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:198
+msgid "The EGL driver reported no directly importable DMA-BUF formats"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:204
+msgid "The EGL driver returned an empty DMA-BUF format list"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:220
+msgid "The EGL driver returned an invalid DMA-BUF format list"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:226
+msgid "The EGL driver returned a non-string DMA-BUF format"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:246
+msgid "Unknown component"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:242
+#, rust-format
+msgid "{component}: {error}{debug}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:253
+msgid "The PipeWire stream ended during startup"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:263
+msgid "The GStreamer capture pipeline has no message bus"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:271
+#, rust-format
+msgid "GStreamer PipeWire stream error: {error}{debug}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:279
+msgid "The PipeWire stream ended before returning a frame"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:285
+msgid "Timed out waiting for a PipeWire capture frame"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:291
+msgid "The PipeWire capture frame has no video format"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:294
+#, rust-format
+msgid "Failed to parse the PipeWire video format: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:300
+#, rust-format
+msgid "GStreamer returned the unexpected pixel format {format}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:306
+msgid "The PipeWire capture sample has no pixel buffer"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:310
+#, rust-format
+msgid "Failed to map the PipeWire capture frame: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:317
+msgid "The PipeWire capture frame has no color plane"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:320
+#, rust-format
+msgid "Failed to read PipeWire capture pixels: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:330
+msgid "Capture width overflow"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:332
+msgid "The PipeWire frame stride is smaller than an RGBA row"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:338
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:345
+msgid "Capture dimensions overflow"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/pipewire_frame.rs:340
+msgid "The PipeWire capture pixel buffer is incomplete"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:20
+#, rust-format
+msgid "Failed to start the physical-output capture thread: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:26
+#, rust-format
+msgid "The physical-output capture thread ended unexpectedly: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:45
+#, rust-format
+msgid "Failed to start {helper}: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:53
+msgid "The physical-output capture helper has no standard output"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:57
+msgid "The physical-output capture helper has no error output"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:70
+#, rust-format
+msgid "Failed to read the physical-output capture: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:76
+#, rust-format
+msgid "Failed to wait for the physical-output capture helper: {error}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:85
+#, rust-format
+msgid "The physical-output capture helper exited: {status}"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:94
+msgid "The physical-output capture exceeds the 256 MiB safety limit"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/screencopy_frame.rs:99
+msgid "The physical-output capture helper returned an empty image"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:201
+msgid "Select capture region"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:217
+msgid ""
+"Drag to select · Move or drag handles to adjust · Enter to confirm · Esc to "
+"cancel"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:225
+msgid "Drag to select a capture region"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:227
+msgid "Cancel"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:228
+msgid "Select entire desktop"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:230
+msgid "Confirm selected region"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:380
+msgid "The capture decoder returned no image"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:386
+msgid "The capture region is too small"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:516
+msgid "The capture region is too small; please select it again"
+msgstr ""
+
+#: crates/ppocr-screenshot/src/selector.rs:665
+#, rust-format
+msgid "{width} × {height} pixels"
+msgstr ""

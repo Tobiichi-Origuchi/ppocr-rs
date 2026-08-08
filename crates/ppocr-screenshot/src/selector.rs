@@ -6,6 +6,7 @@ use std::{
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader};
 use gtk::{cairo, gdk, glib, prelude::*};
+use ppocr_i18n::tr;
 
 const HANDLE_RADIUS: f64 = 5.0;
 const HANDLE_HIT_RADIUS: f64 = 12.0;
@@ -197,7 +198,7 @@ pub async fn select_region(
 ) -> Result<Option<Vec<u8>>, String> {
     let image = decode(&encoded_image)?;
     let selector = gtk::Window::builder()
-        .title("选择截图区域")
+        .title(tr!("Select capture region"))
         .decorated(false)
         .build();
     if let Some(application) = parent.application() {
@@ -212,21 +213,21 @@ pub async fn select_region(
     let root = gtk::Overlay::new();
     root.set_child(Some(&drawing));
 
-    let hint = gtk::Label::new(Some(
-        "拖拽框选区域 · 可移动或拖动控制点调整 · Enter 确认 · Esc 取消",
-    ));
+    let hint = gtk::Label::new(Some(&tr!(
+        "Drag to select · Move or drag handles to adjust · Enter to confirm · Esc to cancel"
+    )));
     hint.add_css_class("ppocr-screenshot-hint");
     hint.set_halign(gtk::Align::Center);
     hint.set_valign(gtk::Align::Start);
     hint.set_margin_top(24);
     root.add_overlay(&hint);
 
-    let size_label = gtk::Label::new(Some("拖拽以选择截图区域"));
+    let size_label = gtk::Label::new(Some(&tr!("Drag to select a capture region")));
     size_label.add_css_class("dim-label");
-    let cancel = gtk::Button::with_label("取消");
-    let full = gtk::Button::with_label("选择整个桌面");
+    let cancel = gtk::Button::with_label(&tr!("Cancel"));
+    let full = gtk::Button::with_label(&tr!("Select entire desktop"));
     let accept = gtk::Button::builder()
-        .label("确认所选区域")
+        .label(tr!("Confirm selected region"))
         .icon_name("object-select-symbolic")
         .sensitive(false)
         .build();
@@ -376,13 +377,13 @@ fn decode(bytes: &[u8]) -> Result<Pixbuf, String> {
     loader.close().map_err(|error| error.to_string())?;
     loader
         .pixbuf()
-        .ok_or_else(|| "截图解码器没有返回图像".to_owned())
+        .ok_or_else(|| tr!("The capture decoder returned no image"))
 }
 
 fn crop_png(image: &Pixbuf, selection: Rect) -> Result<Vec<u8>, String> {
     let selection = selection.clamp(f64::from(image.width()), f64::from(image.height()));
     if !selection.is_usable() {
-        return Err("截图区域过小".to_owned());
+        return Err(tr!("The capture region is too small"));
     }
     let x = selection.x.floor() as i32;
     let y = selection.y.floor() as i32;
@@ -511,7 +512,9 @@ fn connect_selection_gestures(
             .is_some_and(|selection| !selection.is_usable())
         {
             state.selection = None;
-            size_for_end.set_label("截图区域过小，请重新框选");
+            size_for_end.set_label(&tr!(
+                "The capture region is too small; please select it again"
+            ));
             accept_for_end.set_sensitive(false);
         }
         drawing_for_end.queue_draw();
@@ -658,10 +661,10 @@ fn clamp_to_image(placement: Placement, point: Point) -> Point {
 }
 
 fn update_selection_ui(selection: Rect, label: &gtk::Label, accept: &gtk::Button) {
-    label.set_label(&format!(
-        "{} × {} 像素",
-        selection.width.round() as u32,
-        selection.height.round() as u32
+    label.set_label(&tr!(
+        "{width} × {height} pixels",
+        width = selection.width.round() as u32,
+        height = selection.height.round() as u32
     ));
     accept.set_sensitive(selection.is_usable());
 }

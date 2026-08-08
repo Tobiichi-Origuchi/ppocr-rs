@@ -15,6 +15,7 @@ use ppocr_app_protocol::{
     RecognitionResult, Recognize, RequestFailed, ShutdownComplete, WorkerHello, read_frame,
     write_frame,
 };
+use ppocr_i18n::tr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -327,7 +328,7 @@ impl<E: Engine> WorkerMachine<E> {
             request_id: request.request_id,
             job_id: None,
             phase: ProgressPhase::PreparingModels,
-            message: "正在准备所选模型".to_owned(),
+            message: tr!("Preparing the selected models"),
             model_index: None,
             model_count: None,
             model_id: None,
@@ -401,7 +402,7 @@ impl<E: Engine> WorkerMachine<E> {
             request_id: request.request_id,
             job_id: Some(request.job_id),
             phase: ProgressPhase::Decoding,
-            message: "正在解码图片".to_owned(),
+            message: tr!("Decoding the image"),
             model_index: None,
             model_count: None,
             model_id: None,
@@ -503,17 +504,19 @@ fn protocol_progress(request_id: u64, progress: EngineProgress) -> Progress {
         progress.bytes_completed,
         progress.total_bytes,
     ) {
-        (ProgressPhase::PreparingModels, Some(done), Some(total)) => format!(
-            "正在下载模型（{}/{}）{}/{} {}",
-            progress.model_index,
-            progress.model_count,
-            human_bytes(done),
-            human_bytes(total),
-            progress.model_id
+        (ProgressPhase::PreparingModels, Some(done), Some(total)) => tr!(
+            "Downloading model ({index}/{count}) {completed}/{total} {model}",
+            index = progress.model_index,
+            count = progress.model_count,
+            completed = human_bytes(done),
+            total = human_bytes(total),
+            model = progress.model_id
         ),
-        (ProgressPhase::InitializingSessions, _, _) => format!(
-            "正在加载模型（{}/{}）{}",
-            progress.model_index, progress.model_count, progress.model_id
+        (ProgressPhase::InitializingSessions, _, _) => tr!(
+            "Loading model ({index}/{count}) {model}",
+            index = progress.model_index,
+            count = progress.model_count,
+            model = progress.model_id
         ),
         _ => progress.model_id.clone(),
     };
@@ -752,7 +755,7 @@ mod tests {
         assert_eq!(progress.model_index, Some(1));
         assert_eq!(progress.model_count, Some(5));
         assert_eq!(progress.model_id.as_deref(), Some("PP-OCRv6_mobile_rec"));
-        assert!(progress.message.contains("（1/5）"));
+        assert!(progress.message.contains("1/5"));
         assert!(progress.message.contains("PP-OCRv6_mobile_rec"));
         assert!(progress.message.contains("MiB"));
     }

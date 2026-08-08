@@ -8,6 +8,7 @@ use std::{
 use gdk_pixbuf::Pixbuf;
 use gtk::{cairo, gdk, prelude::*};
 use ppocr_app_protocol::OcrMetadata;
+use ppocr_i18n::tr;
 
 use crate::data::RectF;
 
@@ -55,7 +56,7 @@ impl PreviewPane {
             image.width(),
             image.height()
         ));
-        self.badge.set_label("等待处理");
+        self.badge.set_label(&tr!("Ready to process"));
         self.badge.remove_css_class("accent");
         self.badge.remove_css_class("error");
         self.badge.add_css_class("dim-label");
@@ -75,11 +76,12 @@ impl PreviewPane {
     }
 
     pub fn set_processing(&self) {
-        self.badge.set_label("正在处理");
+        self.badge.set_label(&tr!("Processing"));
         self.badge.remove_css_class("accent");
         self.badge.remove_css_class("error");
         self.badge.add_css_class("dim-label");
-        self.processing_label.set_label("正在准备识别…");
+        self.processing_label
+            .set_label(&tr!("Preparing recognition…"));
         self.progress_bar.set_visible(false);
         self.spinner.start();
         self.processing_overlay.set_visible(true);
@@ -106,7 +108,7 @@ impl PreviewPane {
             "{}  ·  {} × {}",
             source_name, metadata.processed_size.width, metadata.processed_size.height
         ));
-        self.badge.set_label("识别完成");
+        self.badge.set_label(&tr!("Recognition complete"));
         self.badge.remove_css_class("dim-label");
         self.badge.remove_css_class("error");
         self.badge.add_css_class("accent");
@@ -124,7 +126,7 @@ impl PreviewPane {
     }
 
     pub fn set_failed(&self) {
-        self.badge.set_label("处理失败");
+        self.badge.set_label(&tr!("Processing failed"));
         self.badge.remove_css_class("accent");
         self.badge.add_css_class("error");
         self.spinner.stop();
@@ -150,10 +152,10 @@ pub fn build_preview(
     heading.set_margin_end(16);
 
     let title_box = gtk::Box::new(gtk::Orientation::Vertical, 2);
-    let title = gtk::Label::new(Some("文档预览"));
+    let title = gtk::Label::new(Some(&tr!("Document preview")));
     title.set_xalign(0.0);
     title.add_css_class("heading");
-    let subtitle = gtk::Label::new(Some("尚未打开图片"));
+    let subtitle = gtk::Label::new(Some(&tr!("No image opened")));
     subtitle.set_xalign(0.0);
     subtitle.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
     subtitle.add_css_class("dim-label");
@@ -165,7 +167,7 @@ pub fn build_preview(
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     heading.append(&spacer);
-    let badge = gtk::Label::new(Some("等待图片"));
+    let badge = gtk::Label::new(Some(&tr!("Waiting for an image")));
     badge.add_css_class("dim-label");
     badge.add_css_class("pill");
     heading.append(&badge);
@@ -186,7 +188,8 @@ pub fn build_preview(
         .build();
     drawing_area.add_css_class("preview-canvas");
     drawing_area.set_accessible_role(gtk::AccessibleRole::Img);
-    drawing_area.update_property(&[gtk::accessible::Property::Label("OCR 文档预览")]);
+    let accessible_label = tr!("OCR document preview");
+    drawing_area.update_property(&[gtk::accessible::Property::Label(&accessible_label)]);
 
     let selected_for_draw = selected_line.clone();
     let boxes_for_draw = show_boxes.clone();
@@ -236,10 +239,10 @@ pub fn build_preview(
                 )
             };
             subtitle_for_click.set_label(&format!("{source_name}  ·  {width} × {height}"));
-            badge_for_click.set_label(if showing_processed {
-                "处理后图"
+            badge_for_click.set_label(&if showing_processed {
+                tr!("Processed image")
             } else {
-                "原图"
+                tr!("Original image")
             });
             selected_for_click.set(None);
             on_line_selected(None);
@@ -275,7 +278,7 @@ pub fn build_preview(
 
     let spinner = gtk::Spinner::new();
     spinner.set_size_request(34, 34);
-    let processing_label = gtk::Label::new(Some("正在处理图片…"));
+    let processing_label = gtk::Label::new(Some(&tr!("Processing image…")));
     processing_label.add_css_class("processing-label");
     processing_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
     processing_label.set_max_width_chars(64);
@@ -304,7 +307,7 @@ pub fn build_preview(
     controls.set_margin_start(14);
     controls.set_margin_end(14);
 
-    let overlay_switch = gtk::CheckButton::with_label("显示文本框");
+    let overlay_switch = gtk::CheckButton::with_label(&tr!("Show text boxes"));
     overlay_switch.set_active(true);
     let boxes_for_toggle = show_boxes.clone();
     let drawing_for_toggle = drawing_area.clone();
@@ -317,22 +320,22 @@ pub fn build_preview(
 
     let zoom_out = gtk::Button::from_icon_name("zoom-out-symbolic");
     zoom_out.add_css_class("flat");
-    zoom_out.set_tooltip_text(Some("缩小"));
+    zoom_out.set_tooltip_text(Some(&tr!("Zoom out")));
     controls.append(&zoom_out);
 
     let adjustment = gtk::Adjustment::new(100.0, 50.0, 180.0, 10.0, 20.0, 0.0);
     let scale = gtk::Scale::new(gtk::Orientation::Horizontal, Some(&adjustment));
     scale.set_draw_value(false);
     scale.set_size_request(150, -1);
-    scale.set_tooltip_text(Some("预览缩放"));
+    scale.set_tooltip_text(Some(&tr!("Preview zoom")));
     controls.append(&scale);
 
     let zoom_in = gtk::Button::from_icon_name("zoom-in-symbolic");
     zoom_in.add_css_class("flat");
-    zoom_in.set_tooltip_text(Some("放大"));
+    zoom_in.set_tooltip_text(Some(&tr!("Zoom in")));
     controls.append(&zoom_in);
 
-    let fit = gtk::Button::with_label("适应窗口");
+    let fit = gtk::Button::with_label(&tr!("Fit to window"));
     fit.add_css_class("flat");
     controls.append(&fit);
 
@@ -341,7 +344,7 @@ pub fn build_preview(
     zoom_label.set_width_chars(5);
     controls.append(&zoom_label);
 
-    let page_label = gtk::Label::new(Some("第 1 / 1 页"));
+    let page_label = gtk::Label::new(Some(&tr!("Page 1 of 1")));
     page_label.set_hexpand(true);
     page_label.set_halign(gtk::Align::End);
     page_label.add_css_class("dim-label");
@@ -466,7 +469,7 @@ fn draw_preview(
 
 fn draw_empty_state(cr: &cairo::Context, width: i32, height: i32) {
     let layout = pangocairo::functions::create_layout(cr);
-    layout.set_text("打开一张图片以开始识别");
+    layout.set_text(&tr!("Open an image to start recognition"));
     let font = gtk::pango::FontDescription::from_string("Sans 13");
     layout.set_font_description(Some(&font));
     let (text_width, text_height) = layout.pixel_size();

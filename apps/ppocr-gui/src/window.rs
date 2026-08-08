@@ -6,10 +6,11 @@ use std::{
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 use ppocr_app_protocol::{Limits, OcrMetadata};
+use ppocr_i18n::{ntr, tr};
 
 use crate::{
     backend::{Backend, BackendEvent, ImageJob, detect_image_format},
-    data::EXPORT_FORMATS,
+    data::export_formats,
     preview::{self, PreviewPane},
     settings::{self, SettingsState},
 };
@@ -54,12 +55,12 @@ impl DocumentState {
         self.process_action
             .set_enabled(!processing && self.loaded.borrow().is_some());
         if let Some(button) = self.process_button.borrow().as_ref() {
-            button.set_label(if processing {
-                "正在处理"
+            button.set_label(&if processing {
+                tr!("Processing")
             } else if self.has_result.get() {
-                "重新处理"
+                tr!("Process again")
             } else {
-                "开始处理"
+                tr!("Start processing")
             });
         }
     }
@@ -91,7 +92,7 @@ pub fn build_ui(app: &adw::Application) {
 
     let toolbar_view = adw::ToolbarView::new();
     let toast_overlay = adw::ToastOverlay::new();
-    let status_text = gtk::Label::new(Some("请选择图片开始识别"));
+    let status_text = gtk::Label::new(Some(&tr!("Choose an image to start recognition")));
     let runtime_summary = gtk::Label::new(None);
     settings::update_runtime_summary(&settings_state, &runtime_summary);
 
@@ -124,7 +125,8 @@ pub fn build_ui(app: &adw::Application) {
                             );
                         }
                     });
-                    status_for_preview.set_label(&format!("已选择文本行 {}", index + 1));
+                    status_for_preview
+                        .set_label(&tr!("Selected text line {index}", index = index + 1));
                 }
             } else {
                 list_for_preview.unselect_all();
@@ -132,12 +134,12 @@ pub fn build_ui(app: &adw::Application) {
         },
         move |showing_processed| {
             let message = if showing_processed {
-                "已切换到处理后图"
+                tr!("Switched to the processed image")
             } else {
-                "已切换到原图"
+                tr!("Switched to the original image")
             };
-            status_for_toggle.set_label(message);
-            add_toast(&toasts_for_toggle, message);
+            status_for_toggle.set_label(&message);
+            add_toast(&toasts_for_toggle, &message);
         },
     );
 
@@ -149,7 +151,7 @@ pub fn build_ui(app: &adw::Application) {
         selected_for_results.set(selected);
         drawing_for_results.queue_draw();
         if let Some(index) = selected {
-            status_for_results.set_label(&format!("已选择文本行 {}", index + 1));
+            status_for_results.set_label(&tr!("Selected text line {index}", index = index + 1));
         }
     });
 
@@ -283,10 +285,10 @@ fn build_backend(
                 .iter()
                 .filter(|provider| provider.compiled && provider.ort_reported_available)
                 .count();
-            runtime_summary.set_tooltip_text(Some(&format!(
-                "IPC 已连接：{} / {} 个 Provider 可用",
-                available,
-                hello.providers.len()
+            runtime_summary.set_tooltip_text(Some(&tr!(
+                "IPC connected: {available} of {total} execution providers available",
+                available = available,
+                total = hello.providers.len()
             )));
         }
         BackendEvent::Result {
@@ -301,14 +303,20 @@ fn build_backend(
             let line_count = result.metadata.text_lines.len();
             match preview.set_result(processed_png, result.metadata, &source_name) {
                 Ok(()) => {
-                    status.set_label(&format!(
-                        "识别完成 · {line_count} 行 · {} ms",
-                        result.elapsed_ms
+                    status.set_label(&ntr!(
+                        "Recognition complete · 1 line · {elapsed} ms",
+                        "Recognition complete · {count} lines · {elapsed} ms",
+                        line_count,
+                        count = line_count,
+                        elapsed = result.elapsed_ms
                     ));
                     runtime_summary.set_label(&format!("{model}  ·  {} ms", result.elapsed_ms));
                 }
                 Err(error) => {
-                    let message = format!("识别成功，但预览图像无法显示：{error}");
+                    let message = tr!(
+                        "Recognition succeeded, but the preview image cannot be displayed: {error}",
+                        error = error
+                    );
                     status.set_label(&message);
                     add_toast(&toasts, &message);
                 }
@@ -317,7 +325,7 @@ fn build_backend(
         BackendEvent::Error(message) => {
             document_for_events.set_processing(false);
             preview.set_failed();
-            status.set_label("识别失败");
+            status.set_label(&tr!("Recognition failed"));
             add_toast(&toasts, &message);
         }
     })
@@ -346,10 +354,10 @@ impl ResultsPane {
         for (index, line) in metadata.text_lines.iter().enumerate() {
             let row = adw::ActionRow::builder()
                 .title(&line.text)
-                .subtitle(format!(
-                    "文本行 {:02}  ·  置信度 {:.1}%",
-                    index + 1,
-                    line.recognition_score * 100.0
+                .subtitle(tr!(
+                    "Text line {index:02}  ·  Confidence {confidence:.1}%",
+                    index = index + 1,
+                    confidence = line.recognition_score * 100.0
                 ))
                 .activatable(true)
                 .build();
@@ -357,7 +365,7 @@ impl ResultsPane {
             rows.push((row, line.text.to_lowercase()));
         }
         self.count
-            .set_label(&format!("{} 行", metadata.text_lines.len()));
+            .set_label(&line_count_label(metadata.text_lines.len()));
         let text = metadata
             .text_lines
             .iter()
@@ -374,7 +382,7 @@ impl ResultsPane {
             self.line_list.remove(&child);
         }
         self.rows.borrow_mut().clear();
-        self.count.set_label("0 行");
+        self.count.set_label(&line_count_label(0));
         self.original_text.borrow_mut().clear();
         self.buffer.set_text("");
     }
@@ -392,14 +400,14 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     top.set_margin_bottom(10);
     top.set_margin_start(16);
     top.set_margin_end(16);
-    let title = gtk::Label::new(Some("识别结果"));
+    let title = gtk::Label::new(Some(&tr!("Recognition results")));
     title.add_css_class("heading");
     title.set_xalign(0.0);
     top.append(&title);
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     top.append(&spacer);
-    let count = gtk::Label::new(Some("0 行"));
+    let count = gtk::Label::new(Some(&line_count_label(0)));
     count.add_css_class("dim-label");
     count.add_css_class("pill");
     top.append(&count);
@@ -437,14 +445,14 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         .vexpand(true)
         .child(&text_view)
         .build();
-    stack.add_titled(&text_scroller, Some("text"), "文本");
+    stack.add_titled(&text_scroller, Some("text"), &tr!("Text"));
 
     let lines_page = gtk::Box::new(gtk::Orientation::Vertical, 10);
     lines_page.set_margin_start(12);
     lines_page.set_margin_end(12);
     lines_page.set_margin_bottom(12);
     let search = gtk::SearchEntry::builder()
-        .placeholder_text("搜索文本行")
+        .placeholder_text(tr!("Search text lines"))
         .build();
     lines_page.append(&search);
     let line_list = gtk::ListBox::new();
@@ -458,8 +466,11 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         };
         let text = row.title();
         row.display().clipboard().set_text(&text);
-        status_for_line_copy.set_label("已复制所选文本行");
-        add_toast(&toasts_for_line_copy, "文本行已复制到剪贴板");
+        status_for_line_copy.set_label(&tr!("Copied the selected text line"));
+        add_toast(
+            &toasts_for_line_copy,
+            &tr!("Text line copied to the clipboard"),
+        );
     });
 
     let rows = Rc::new(RefCell::new(Vec::<(adw::ActionRow, String)>::new()));
@@ -479,7 +490,7 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
         .child(&line_list)
         .build();
     lines_page.append(&line_scroller);
-    stack.add_titled(&lines_page, Some("lines"), "文本行");
+    stack.add_titled(&lines_page, Some("lines"), &tr!("Text lines"));
 
     root.append(&stack);
     root.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
@@ -489,17 +500,17 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     footer.set_margin_bottom(12);
     footer.set_margin_start(14);
     footer.set_margin_end(14);
-    let char_count = gtk::Label::new(Some("0 个字符"));
+    let char_count = gtk::Label::new(Some(&character_count_label(0)));
     char_count.add_css_class("dim-label");
     footer.append(&char_count);
     let footer_spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     footer_spacer.set_hexpand(true);
     footer.append(&footer_spacer);
-    let restore = gtk::Button::with_label("恢复结果");
+    let restore = gtk::Button::with_label(&tr!("Restore result"));
     restore.add_css_class("flat");
     footer.append(&restore);
     let copy = gtk::Button::builder()
-        .label("复制全部")
+        .label(tr!("Copy all"))
         .icon_name("edit-copy-symbolic")
         .build();
     footer.append(&copy);
@@ -508,14 +519,17 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     let count_for_buffer = char_count.clone();
     buffer.connect_changed(move |buffer| {
         let text = buffer.text(&buffer.start_iter(), &buffer.end_iter(), true);
-        count_for_buffer.set_label(&format!("{} 个字符", text.chars().count()));
+        count_for_buffer.set_label(&character_count_label(text.chars().count()));
     });
 
     let buffer_for_copy = buffer.clone();
     let toasts_for_copy = toasts.clone();
     copy.connect_clicked(move |_| {
         copy_buffer(&buffer_for_copy);
-        add_toast(&toasts_for_copy, "识别文本已复制到剪贴板");
+        add_toast(
+            &toasts_for_copy,
+            &tr!("Recognized text copied to the clipboard"),
+        );
     });
 
     let original_text = Rc::new(RefCell::new(String::new()));
@@ -525,8 +539,9 @@ fn build_results(toasts: &adw::ToastOverlay, status: &gtk::Label) -> ResultsPane
     let status_for_restore = status.clone();
     restore.connect_clicked(move |_| {
         buffer_for_restore.set_text(&original_for_restore.borrow());
-        status_for_restore.set_label("已恢复原始识别文本");
-        add_toast(&toasts_for_restore, "已恢复原始识别文本");
+        let message = tr!("Restored the original recognized text");
+        status_for_restore.set_label(&message);
+        add_toast(&toasts_for_restore, &message);
     });
 
     ResultsPane {
@@ -558,41 +573,47 @@ fn build_header(
     let header = adw::HeaderBar::new();
     let title = adw::WindowTitle::builder()
         .title("Paddle OCR")
-        .subtitle("原生 GTK4 前端")
+        .subtitle(tr!("Native GTK4 frontend"))
         .build();
     header.set_title_widget(Some(&title));
 
     let capture_menu = gio::Menu::new();
-    capture_menu.append(Some("区域截图"), Some("win.capture-region"));
-    capture_menu.append(Some("屏幕截图"), Some("win.capture-screen"));
-    capture_menu.append(Some("窗口截图"), Some("win.capture-window"));
+    capture_menu.append(Some(&tr!("Capture region")), Some("win.capture-region"));
+    capture_menu.append(Some(&tr!("Capture screen")), Some("win.capture-screen"));
+    capture_menu.append(Some(&tr!("Capture window")), Some("win.capture-window"));
     let capture = adw::SplitButton::builder()
-        .label("截图识别")
+        .label(tr!("Capture and recognize"))
         .icon_name("edit-select-all-symbolic")
         .menu_model(&capture_menu)
-        .dropdown_tooltip("选择截图目标")
+        .dropdown_tooltip(tr!("Choose a capture target"))
         .build();
     capture.add_css_class("suggested-action");
     capture.set_action_name(Some("win.capture-region"));
-    capture.set_tooltip_text(Some("框选屏幕区域并识别  Ctrl+Shift+O"));
+    capture.set_tooltip_text(Some(&tr!(
+        "Select a screen region and recognize it  Ctrl+Shift+O"
+    )));
     header.pack_start(&capture);
 
-    let open = button_content("打开图片", "document-open-symbolic");
+    let open = button_content(&tr!("Open image"), "document-open-symbolic");
     open.set_action_name(Some("win.open"));
-    open.set_tooltip_text(Some("选择图片文件  Ctrl+O"));
+    open.set_tooltip_text(Some(&tr!("Choose an image file  Ctrl+O")));
     header.pack_start(&open);
 
-    let process = button_content("开始处理", "media-playback-start-symbolic");
+    let process = button_content(&tr!("Start processing"), "media-playback-start-symbolic");
     process.set_action_name(Some("win.process"));
     process.add_css_class("suggested-action");
-    process.set_tooltip_text(Some("使用当前产线设置开始识别"));
+    process.set_tooltip_text(Some(&tr!(
+        "Start recognition with the current pipeline settings"
+    )));
     document.process_button.replace(Some(process.clone()));
     header.pack_start(&process);
 
     let preferences = gtk::Button::from_icon_name("emblem-system-symbolic");
     preferences.add_css_class("flat");
     preferences.set_action_name(Some("win.preferences"));
-    preferences.set_tooltip_text(Some("模型、产线与界面设置  Ctrl+,"));
+    preferences.set_tooltip_text(Some(&tr!(
+        "Model, pipeline, and interface settings  Ctrl+,"
+    )));
     header.pack_end(&preferences);
 
     let more = build_more_menu(window);
@@ -600,14 +621,14 @@ fn build_header(
     let export = build_export_menu(toasts, status);
     header.pack_end(&export);
 
-    let copy = button_content("复制", "edit-copy-symbolic");
+    let copy = button_content(&tr!("Copy"), "edit-copy-symbolic");
     copy.set_action_name(Some("win.copy"));
-    copy.set_tooltip_text(Some("复制全部识别文本  Ctrl+Shift+C"));
+    copy.set_tooltip_text(Some(&tr!("Copy all recognized text  Ctrl+Shift+C")));
     header.pack_end(&copy);
 
-    let results = button_content("结果", "sidebar-show-symbolic");
+    let results = button_content(&tr!("Results"), "sidebar-show-symbolic");
     results.set_action_name(Some("win.toggle-results"));
-    results.set_tooltip_text(Some("显示或隐藏识别结果"));
+    results.set_tooltip_text(Some(&tr!("Show or hide recognition results")));
     header.pack_end(&results);
 
     install_window_actions(
@@ -688,9 +709,21 @@ fn install_window_actions(
     window.add_action(&paste);
 
     for (action_name, kind, prompt) in [
-        ("capture-region", CaptureKind::Region, "正在准备区域截图"),
-        ("capture-screen", CaptureKind::Screen, "请选择要截取的屏幕"),
-        ("capture-window", CaptureKind::Window, "请选择要截取的窗口"),
+        (
+            "capture-region",
+            CaptureKind::Region,
+            tr!("Preparing region capture"),
+        ),
+        (
+            "capture-screen",
+            CaptureKind::Screen,
+            tr!("Choose the screen to capture"),
+        ),
+        (
+            "capture-window",
+            CaptureKind::Window,
+            tr!("Choose the window to capture"),
+        ),
     ] {
         let capture = gio::SimpleAction::new(action_name, None);
         let window_for_capture = window.clone();
@@ -708,7 +741,7 @@ fn install_window_actions(
             let toasts = toasts.clone();
             let status = status.clone();
             let document = document.clone();
-            status.set_label(prompt);
+            status.set_label(&prompt);
             glib::MainContext::default().spawn_local(async move {
                 let configured_delay = settings.screenshot_delay_ms.get().round() as u64;
                 #[cfg(debug_assertions)]
@@ -736,10 +769,12 @@ fn install_window_actions(
                             &status,
                         );
                     }
-                    Ok(CaptureOutcome::Cancelled) => status.set_label("截图已取消"),
+                    Ok(CaptureOutcome::Cancelled) => {
+                        status.set_label(&tr!("Capture cancelled"));
+                    }
                     Err(error) => {
                         eprintln!("screenshot capture failed: {error}");
-                        status.set_label("截图失败");
+                        status.set_label(&tr!("Capture failed"));
                         add_toast(&toasts, &error.to_string());
                     }
                 }
@@ -753,7 +788,10 @@ fn install_window_actions(
     let toasts_for_copy = toasts.clone();
     copy.connect_activate(move |_, _| {
         copy_buffer(&buffer_for_copy);
-        add_toast(&toasts_for_copy, "识别文本已复制到剪贴板");
+        add_toast(
+            &toasts_for_copy,
+            &tr!("Recognized text copied to the clipboard"),
+        );
     });
     window.add_action(&copy);
 
@@ -807,7 +845,7 @@ fn open_image_dialog(
     status: &gtk::Label,
 ) {
     let image_filter = gtk::FileFilter::new();
-    image_filter.set_name(Some("支持的图片"));
+    image_filter.set_name(Some(&tr!("Supported images")));
     for mime_type in [
         "image/png",
         "image/jpeg",
@@ -821,8 +859,8 @@ fn open_image_dialog(
     let filters = gio::ListStore::new::<gtk::FileFilter>();
     filters.append(&image_filter);
     let dialog = gtk::FileDialog::builder()
-        .title("选择要识别的图片")
-        .accept_label("打开")
+        .title(tr!("Choose an image to recognize"))
+        .accept_label(tr!("Open"))
         .modal(true)
         .filters(&filters)
         .default_filter(&image_filter)
@@ -835,7 +873,10 @@ fn open_image_dialog(
             Ok(file) => file,
             Err(error) if error.matches::<gio::IOErrorEnum>(gio::IOErrorEnum::Cancelled) => return,
             Err(error) => {
-                add_toast(&toasts, &format!("无法打开文件选择器：{error}"));
+                add_toast(
+                    &toasts,
+                    &tr!("Failed to open the file chooser: {error}", error = error),
+                );
                 return;
             }
         };
@@ -857,13 +898,13 @@ fn paste_clipboard_image(
     let toasts = toasts.clone();
     let status = status.clone();
     glib::MainContext::default().spawn_local(async move {
-        status.set_label("正在读取剪贴板图片");
+        status.set_label(&tr!("Reading an image from the clipboard"));
         match clipboard.read_texture_future().await {
             Ok(Some(texture)) => {
                 let png = texture.save_to_png_bytes();
                 load_image_bytes(
                     png.as_ref().to_vec(),
-                    "剪贴板图片.png".to_owned(),
+                    tr!("Clipboard image.png"),
                     backend,
                     settings,
                     preview,
@@ -873,12 +914,18 @@ fn paste_clipboard_image(
                 );
             }
             Ok(None) => {
-                status.set_label("剪贴板中没有图片");
-                add_toast(&toasts, "剪贴板中没有可粘贴的图片");
+                status.set_label(&tr!("The clipboard does not contain an image"));
+                add_toast(
+                    &toasts,
+                    &tr!("No pasteable image was found on the clipboard"),
+                );
             }
             Err(error) => {
-                status.set_label("读取剪贴板失败");
-                add_toast(&toasts, &format!("无法读取剪贴板图片：{error}"));
+                status.set_label(&tr!("Failed to read the clipboard"));
+                add_toast(
+                    &toasts,
+                    &tr!("Failed to read the clipboard image: {error}", error = error),
+                );
             }
         }
     });
@@ -896,12 +943,15 @@ fn submit_image_file(
     let toasts = toasts.clone();
     let status = status.clone();
     glib::MainContext::default().spawn_local(async move {
-        status.set_label("正在读取图片");
+        status.set_label(&tr!("Reading the image"));
         let (bytes, _) = match file.load_bytes_future().await {
             Ok(value) => value,
             Err(error) => {
-                status.set_label("读取图片失败");
-                add_toast(&toasts, &format!("无法读取所选图片：{error}"));
+                status.set_label(&tr!("Failed to read the image"));
+                add_toast(
+                    &toasts,
+                    &tr!("Failed to read the selected image: {error}", error = error),
+                );
                 return;
             }
         };
@@ -935,21 +985,27 @@ fn load_image_bytes(
     status: &gtk::Label,
 ) {
     if bytes.len() as u64 > Limits::DEFAULT.max_attachment_bytes {
-        status.set_label("图片文件过大");
-        add_toast(toasts, "图片文件超过 256 MiB IPC 上限");
+        status.set_label(&tr!("The image file is too large"));
+        add_toast(toasts, &tr!("The image file exceeds the 256 MiB IPC limit"));
         return;
     }
     let Some(format) = detect_image_format(&bytes) else {
-        status.set_label("不支持的图片格式");
+        status.set_label(&tr!("Unsupported image format"));
         add_toast(
             toasts,
-            "文件内容不是受支持的 PNG、JPEG、WebP、TIFF、BMP 或 GIF",
+            &tr!("The file is not a supported PNG, JPEG, WebP, TIFF, BMP, or GIF image"),
         );
         return;
     };
     if let Err(error) = preview.set_source(&bytes, &source_name) {
-        status.set_label("图片预览失败");
-        add_toast(toasts, &format!("无法解码所选图片：{error}"));
+        status.set_label(&tr!("Image preview failed"));
+        add_toast(
+            toasts,
+            &tr!(
+                "Failed to decode the selected image: {error}",
+                error = error
+            ),
+        );
         return;
     }
     backend.invalidate();
@@ -964,7 +1020,9 @@ fn load_image_bytes(
     if settings.immediate_processing.get() {
         process_loaded_document(backend, settings, preview, document, status);
     } else {
-        status.set_label("图片已就绪，点击“开始处理”进行识别");
+        status.set_label(&tr!(
+            "The image is ready; click “Start processing” to recognize it"
+        ));
     }
 }
 
@@ -979,12 +1037,12 @@ fn process_loaded_document(
         return;
     }
     let Some(loaded) = document.loaded.borrow().clone() else {
-        status.set_label("请先打开、粘贴或截取一张图片");
+        status.set_label(&tr!("Open, paste, or capture an image first"));
         return;
     };
     document.set_processing(true);
     preview.set_processing();
-    status.set_label("正在连接识别后端");
+    status.set_label(&tr!("Connecting to the recognition backend"));
     glib::MainContext::default().spawn_local(async move {
         #[cfg(debug_assertions)]
         if let Ok(delay_ms) = std::env::var("PPOCR_GUI_TEST_DELAY_MS")
@@ -1007,11 +1065,11 @@ fn build_export_menu(toasts: &adw::ToastOverlay, status: &gtk::Label) -> gtk::Me
     let button = gtk::MenuButton::new();
     let content = adw::ButtonContent::builder()
         .icon_name("document-save-symbolic")
-        .label("导出")
+        .label(tr!("Export"))
         .can_shrink(true)
         .build();
     button.set_child(Some(&content));
-    button.set_tooltip_text(Some("导出识别结果"));
+    button.set_tooltip_text(Some(&tr!("Export recognition results")));
 
     let popover = gtk::Popover::new();
     let box_ = gtk::Box::new(gtk::Orientation::Vertical, 4);
@@ -1020,30 +1078,37 @@ fn build_export_menu(toasts: &adw::ToastOverlay, status: &gtk::Label) -> gtk::Me
     box_.set_margin_start(10);
     box_.set_margin_end(10);
     box_.set_size_request(240, -1);
-    let heading = gtk::Label::new(Some("导出识别结果"));
+    let heading = gtk::Label::new(Some(&tr!("Export recognition results")));
     heading.set_xalign(0.0);
     heading.add_css_class("heading");
     heading.set_margin_bottom(4);
     box_.append(&heading);
-    for format in EXPORT_FORMATS {
-        let item = gtk::Button::with_label(format);
+    for format in export_formats() {
+        let item = gtk::Button::with_label(&format);
         item.set_halign(gtk::Align::Fill);
         item.add_css_class("flat");
-        let format = (*format).to_owned();
         let toasts = toasts.clone();
         let status = status.clone();
         let popover = popover.clone();
         item.connect_clicked(move |_| {
-            status.set_label(&format!("已选择 {format}"));
-            add_toast(&toasts, &format!("{format} 导出将在后续阶段实现"));
+            status.set_label(&tr!("Selected {format}", format = format));
+            add_toast(
+                &toasts,
+                &tr!(
+                    "Exporting {format} will be implemented in a later stage",
+                    format = format
+                ),
+            );
             popover.popdown();
         });
         box_.append(&item);
     }
     box_.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
-    let pdf = gtk::Button::with_label("可搜索 PDF（后续阶段）");
+    let pdf = gtk::Button::with_label(&tr!("Searchable PDF (later stage)"));
     pdf.set_sensitive(false);
-    pdf.set_tooltip_text(Some("需要 PDF 页面渲染与文本层坐标映射"));
+    pdf.set_tooltip_text(Some(&tr!(
+        "Requires PDF page rendering and text-layer coordinate mapping"
+    )));
     box_.append(&pdf);
     popover.set_child(Some(&box_));
     button.set_popover(Some(&popover));
@@ -1054,7 +1119,7 @@ fn build_more_menu(window: &adw::ApplicationWindow) -> gtk::MenuButton {
     let button = gtk::MenuButton::new();
     button.set_icon_name("open-menu-symbolic");
     button.add_css_class("flat");
-    button.set_tooltip_text(Some("更多选项"));
+    button.set_tooltip_text(Some(&tr!("More options")));
 
     let popover = gtk::Popover::new();
     let box_ = gtk::Box::new(gtk::Orientation::Vertical, 4);
@@ -1064,7 +1129,7 @@ fn build_more_menu(window: &adw::ApplicationWindow) -> gtk::MenuButton {
     box_.set_margin_end(8);
     box_.set_size_request(210, -1);
 
-    let about = gtk::Button::with_label("关于 Paddle OCR");
+    let about = gtk::Button::with_label(&tr!("About Paddle OCR"));
     about.add_css_class("flat");
     let window_for_about = window.clone();
     about.connect_clicked(move |_| {
@@ -1073,7 +1138,9 @@ fn build_more_menu(window: &adw::ApplicationWindow) -> gtk::MenuButton {
             .application_icon("image-text-symbolic")
             .developer_name("ppocr-rs contributors")
             .version("0.1.0")
-            .comments("基于 Rust、GTK4 和 libadwaita 的 PaddleOCR 桌面前端")
+            .comments(tr!(
+                "A PaddleOCR desktop frontend built with Rust, GTK4, and libadwaita"
+            ))
             .website("https://github.com/PaddlePaddle/PaddleOCR")
             .license_type(gtk::License::Apache20)
             .build();
@@ -1121,6 +1188,14 @@ fn button_content(label: &str, icon_name: &str) -> gtk::Button {
         .build();
     button.set_child(Some(&content));
     button
+}
+
+fn line_count_label(count: usize) -> String {
+    ntr!("1 line", "{count} lines", count, count = count)
+}
+
+fn character_count_label(count: usize) -> String {
+    ntr!("1 character", "{count} characters", count, count = count)
 }
 
 fn copy_buffer(buffer: &gtk::TextBuffer) {

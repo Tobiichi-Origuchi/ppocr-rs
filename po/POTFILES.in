@@ -1,0 +1,14 @@
+apps/ppocr-gui/src/backend.rs
+apps/ppocr-gui/src/config.rs
+apps/ppocr-gui/src/data.rs
+apps/ppocr-gui/src/preview.rs
+apps/ppocr-gui/src/settings.rs
+apps/ppocr-gui/src/window.rs
+apps/ppocr-worker/src/server.rs
+apps/ppocr-worker/src/main.rs
+crates/ppocr-screenshot/src/bin/ppocr-screencopy.rs
+crates/ppocr-screenshot/src/layer_shell.rs
+crates/ppocr-screenshot/src/lib.rs
+crates/ppocr-screenshot/src/pipewire_frame.rs
+crates/ppocr-screenshot/src/screencopy_frame.rs
+crates/ppocr-screenshot/src/selector.rs

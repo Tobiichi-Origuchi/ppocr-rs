@@ -1,0 +1,12 @@
+[package]
+name = "ppocr-i18n"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+build = "build.rs"
+
+[dependencies]
+formatx = "=0.4.2"
+gettext-rs = { version = "=0.8.0", features = ["gettext-system"] }
+thiserror = "2.0"

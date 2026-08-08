@@ -18,4 +18,5 @@ image = { version = "0.25.8", default-features = false, features = ["bmp", "gif"
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "api-27"] }
 ppocr = { package = "ppocr-pipeline", path = "../../crates/ppocr-pipeline" }
 ppocr-app-protocol = { path = "../../crates/ppocr-app-protocol" }
+ppocr-i18n = { path = "../../crates/ppocr-i18n" }
 thiserror = "2.0"

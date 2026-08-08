@@ -5,6 +5,7 @@ use std::{
 };
 
 use adw::prelude::*;
+use ppocr_i18n::tr;
 
 use crate::config::{AppConfig, ShortcutConfig, ThemePreference};
 use crate::data::{
@@ -48,7 +49,10 @@ impl SettingsState {
             Ok((config, path)) => (Self::from_config(config, Some(path)), None),
             Err(error) => (
                 Self::from_config(AppConfig::default(), crate::config::config_path().ok()),
-                Some(format!("配置文件读取失败，已使用默认值：{error}")),
+                Some(tr!(
+                    "Failed to read the configuration file; using defaults: {error}",
+                    error = error
+                )),
             ),
         }
     }
@@ -193,7 +197,7 @@ pub fn present_settings(
     runtime_summary: &gtk::Label,
 ) {
     let dialog = adw::PreferencesDialog::builder()
-        .title("设置")
+        .title(tr!("Settings"))
         .search_enabled(true)
         .content_width(680)
         .content_height(720)
@@ -208,25 +212,29 @@ pub fn present_settings(
 fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::PreferencesPage {
     let page = adw::PreferencesPage::builder()
         .name("models")
-        .title("模型与产线")
+        .title(tr!("Models and pipeline"))
         .icon_name("system-run-symbolic")
-        .description("选择必要 OCR 模型，并按需启用三个前处理模块")
+        .description(tr!(
+            "Choose the required OCR models and enable the three preprocessing modules as needed"
+        ))
         .build();
 
     let required = adw::PreferencesGroup::builder()
-        .title("必要模型")
-        .description("文本检测和文本识别始终启用")
+        .title(tr!("Required models"))
+        .description(tr!(
+            "Text detection and text recognition are always enabled"
+        ))
         .build();
     let detector = combo_row(
-        "文本检测模型",
-        "定位图像中的文本区域",
+        &tr!("Text detection model"),
+        &tr!("Locates text regions in the image"),
         DETECTION_MODELS,
         state.detector.get(),
         true,
     );
     let recognizer = combo_row(
-        "文本识别模型",
-        "将裁剪后的文本行转换为字符",
+        &tr!("Text recognition model"),
+        &tr!("Converts cropped text lines into characters"),
         RECOGNITION_MODELS,
         state.recognizer.get(),
         true,
@@ -249,14 +257,16 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
     });
 
     let optional = adw::PreferencesGroup::builder()
-        .title("可选模块")
-        .description("每个模块都可以独立开关和选择对应模型")
+        .title(tr!("Optional modules"))
+        .description(tr!(
+            "Each module can be enabled independently and use its own selected model"
+        ))
         .build();
 
     add_optional_module(
         &optional,
-        "文档图像方向分类",
-        "检测整页 0°、90°、180° 或 270° 旋转",
+        &tr!("Document image orientation classification"),
+        &tr!("Detects 0°, 90°, 180°, or 270° page rotation"),
         DOCUMENT_ORIENTATION_MODELS,
         state.document_orientation_enabled.get(),
         state.document_orientation_model.get(),
@@ -277,8 +287,8 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
     );
     add_optional_module(
         &optional,
-        "文本图像矫正",
-        "使用 UVDoc 修正文档透视与弯曲形变",
+        &tr!("Document image rectification"),
+        &tr!("Uses UVDoc to correct document perspective and curved distortion"),
         DOCUMENT_RECTIFICATION_MODELS,
         state.document_rectification_enabled.get(),
         state.document_rectification_model.get(),
@@ -299,8 +309,8 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
     );
     add_optional_module(
         &optional,
-        "文本行方向分类",
-        "在识别前校正单行文本方向",
+        &tr!("Text-line orientation classification"),
+        &tr!("Corrects individual text-line orientation before recognition"),
         TEXTLINE_ORIENTATION_MODELS,
         state.textline_orientation_enabled.get(),
         state.textline_orientation_model.get(),
@@ -327,15 +337,19 @@ fn models_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::P
 fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::PreferencesPage {
     let page = adw::PreferencesPage::builder()
         .name("runtime")
-        .title("运行与输出")
+        .title(tr!("Runtime and output"))
         .icon_name("preferences-system-symbolic")
-        .description("设备可用性将在 IPC 后端连接后验证")
+        .description(tr!(
+            "Device availability is verified after the IPC backend connects"
+        ))
         .build();
 
-    let inference = adw::PreferencesGroup::builder().title("推理").build();
+    let inference = adw::PreferencesGroup::builder()
+        .title(tr!("Inference"))
+        .build();
     let provider = combo_row(
-        "推理设备",
-        "不可用的 Provider 不会静默回退",
+        &tr!("Inference device"),
+        &tr!("An unavailable execution provider will not silently fall back"),
         RUNTIME_PROVIDERS,
         state.provider.get(),
         false,
@@ -343,8 +357,8 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
     inference.add(&provider);
 
     let confidence = adw::SpinRow::with_range(0.0, 100.0, 1.0);
-    confidence.set_title("最低置信度");
-    confidence.set_subtitle("低于该分数的识别文本将被过滤");
+    confidence.set_title(&tr!("Minimum confidence"));
+    confidence.set_subtitle(&tr!("Recognized text below this score is filtered out"));
     confidence.set_value(state.confidence_percent.get());
     confidence.set_digits(0);
     inference.add(&confidence);
@@ -363,20 +377,24 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
         state_for_confidence.persist();
     });
 
-    let lifecycle = adw::PreferencesGroup::builder().title("识别进程").build();
+    let lifecycle = adw::PreferencesGroup::builder()
+        .title(tr!("Recognition process"))
+        .build();
     let immediate = adw::SwitchRow::builder()
-        .title("立即处理")
-        .subtitle("打开、粘贴或截取图片后自动开始识别；默认关闭")
+        .title(tr!("Process immediately"))
+        .subtitle(tr!(
+            "Start recognition automatically after opening, pasting, or capturing an image; off by default"
+        ))
         .active(state.immediate_processing.get())
         .build();
     let keep_warm = adw::SwitchRow::builder()
-        .title("保持识别进程常驻")
-        .subtitle("减少连续识别时的模型加载等待")
+        .title(tr!("Keep the recognition process running"))
+        .subtitle(tr!("Avoid repeated model-loading delays"))
         .active(state.keep_worker_warm.get())
         .build();
     let idle = adw::SpinRow::with_range(1.0, 120.0, 1.0);
-    idle.set_title("空闲退出时间");
-    idle.set_subtitle("分钟");
+    idle.set_title(&tr!("Idle timeout"));
+    idle.set_subtitle(&tr!("Minutes"));
     idle.set_value(state.idle_timeout_minutes.get());
     idle.set_digits(0);
     idle.set_sensitive(keep_warm.is_active());
@@ -406,10 +424,14 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
         state_for_idle.persist();
     });
 
-    let output = adw::PreferencesGroup::builder().title("结果").build();
+    let output = adw::PreferencesGroup::builder()
+        .title(tr!("Results"))
+        .build();
     let word_boxes = adw::SwitchRow::builder()
-        .title("返回单词级文本框")
-        .subtitle("仅在支持字符对齐的识别模型上生成")
+        .title(tr!("Return word-level text boxes"))
+        .subtitle(tr!(
+            "Generated only for recognition models that support character alignment"
+        ))
         .active(state.return_word_boxes.get())
         .build();
     output.add(&word_boxes);
@@ -425,15 +447,18 @@ fn runtime_page(state: Rc<SettingsState>, runtime_summary: &gtk::Label) -> adw::
 fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::PreferencesPage {
     let page = adw::PreferencesPage::builder()
         .name("interface")
-        .title("界面")
+        .title(tr!("Interface"))
         .icon_name("applications-graphics-symbolic")
         .build();
 
-    let appearance = adw::PreferencesGroup::builder().title("外观").build();
+    let appearance = adw::PreferencesGroup::builder()
+        .title(tr!("Appearance"))
+        .build();
+    let theme_items = [tr!("Follow system"), tr!("Light"), tr!("Dark")];
     let theme = combo_row(
-        "主题",
-        "GTK 会跟随桌面配色和辅助功能设置",
-        &["跟随系统", "浅色", "深色"],
+        &tr!("Theme"),
+        &tr!("GTK follows desktop colors and accessibility settings"),
+        &theme_items,
         state.theme.get(),
         false,
     );
@@ -453,12 +478,16 @@ fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::Pref
     });
 
     let capture = adw::PreferencesGroup::builder()
-        .title("截图")
-        .description("区域和屏幕截图会在隐藏主窗口后等待桌面动画稳定，再获取物理画面")
+        .title(tr!("Screenshot"))
+        .description(tr!(
+            "Region and screen capture wait for desktop animations to settle after hiding the main window"
+        ))
         .build();
     let delay = adw::SpinRow::with_range(0.0, 5000.0, 50.0);
-    delay.set_title("截图稳定延迟");
-    delay.set_subtitle("毫秒；仅影响区域和屏幕截图，窗口截图不会隐藏主窗口");
+    delay.set_title(&tr!("Capture settling delay"));
+    delay.set_subtitle(&tr!(
+        "Milliseconds; only affects region and screen capture, while window capture keeps the main window visible"
+    ));
     delay.set_value(state.screenshot_delay_ms.get());
     delay.set_digits(0);
     capture.add(&delay);
@@ -470,19 +499,24 @@ fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::Pref
     });
 
     let shortcuts = adw::PreferencesGroup::builder()
-        .title("快捷键")
-        .description("使用 GTK 加速键格式；留空可停用快捷键")
+        .title(tr!("Keyboard shortcuts"))
+        .description(tr!(
+            "Use GTK accelerator syntax; leave a field empty to disable its shortcut"
+        ))
         .build();
     let configured = state.shortcuts.borrow().clone();
-    let open_image = shortcut_entry("打开图片", &configured.open_image);
-    let paste_image = shortcut_entry("粘贴图片", &configured.paste_image);
-    let capture_region = shortcut_entry("区域截图", &configured.capture_region);
-    let capture_screen = shortcut_entry("屏幕截图", &configured.capture_screen);
-    let capture_window = shortcut_entry("窗口截图", &configured.capture_window);
-    let start_processing = shortcut_entry("开始或重新处理", &configured.start_processing);
-    let copy_all = shortcut_entry("复制全部文本", &configured.copy_all);
-    let toggle_results = shortcut_entry("显示或隐藏结果", &configured.toggle_results);
-    let preferences = shortcut_entry("打开设置", &configured.preferences);
+    let open_image = shortcut_entry(&tr!("Open image"), &configured.open_image);
+    let paste_image = shortcut_entry(&tr!("Paste image"), &configured.paste_image);
+    let capture_region = shortcut_entry(&tr!("Capture region"), &configured.capture_region);
+    let capture_screen = shortcut_entry(&tr!("Capture screen"), &configured.capture_screen);
+    let capture_window = shortcut_entry(&tr!("Capture window"), &configured.capture_window);
+    let start_processing = shortcut_entry(
+        &tr!("Start or repeat processing"),
+        &configured.start_processing,
+    );
+    let copy_all = shortcut_entry(&tr!("Copy all text"), &configured.copy_all);
+    let toggle_results = shortcut_entry(&tr!("Show or hide results"), &configured.toggle_results);
+    let preferences = shortcut_entry(&tr!("Open settings"), &configured.preferences);
     for row in [
         &open_image,
         &paste_image,
@@ -497,13 +531,15 @@ fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::Pref
         shortcuts.add(row);
     }
     let apply_row = adw::ActionRow::builder()
-        .title("应用快捷键")
-        .subtitle("例如 &lt;Primary&gt;V、&lt;Alt&gt;Print；相同组合不能重复")
+        .title(tr!("Apply shortcuts"))
+        .subtitle(tr!(
+            "For example &lt;Primary&gt;V or &lt;Alt&gt;Print; shortcuts must be unique"
+        ))
         .build();
     let shortcut_status = gtk::Label::new(None);
     shortcut_status.add_css_class("caption");
     shortcut_status.add_css_class("dim-label");
-    let apply = gtk::Button::with_label("应用");
+    let apply = gtk::Button::with_label(&tr!("Apply"));
     apply.set_valign(gtk::Align::Center);
     apply.add_css_class("suggested-action");
     apply_row.add_suffix(&shortcut_status);
@@ -531,7 +567,7 @@ fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::Pref
                 apply_shortcuts(&app, &updated);
                 shortcut_status.remove_css_class("error");
                 shortcut_status.add_css_class("success");
-                shortcut_status.set_label("已应用");
+                shortcut_status.set_label(&tr!("Applied"));
             }
             Err(error) => {
                 shortcut_status.remove_css_class("success");
@@ -544,14 +580,15 @@ fn interface_page(app: &adw::Application, state: Rc<SettingsState>) -> adw::Pref
     page
 }
 
-fn combo_row(
+fn combo_row<T: AsRef<str>>(
     title: &str,
     subtitle: &str,
-    items: &[&str],
+    items: &[T],
     selected: u32,
     enable_search: bool,
 ) -> adw::ComboRow {
-    let model = gtk::StringList::new(items);
+    let item_refs: Vec<_> = items.iter().map(AsRef::as_ref).collect();
+    let model = gtk::StringList::new(&item_refs);
     adw::ComboRow::builder()
         .title(title)
         .subtitle(subtitle)
@@ -577,7 +614,13 @@ fn add_optional_module(
         .subtitle(subtitle)
         .active(enabled)
         .build();
-    let model = combo_row("模型", "选择该模块使用的模型", models, selected, false);
+    let model = combo_row(
+        &tr!("Model"),
+        &tr!("Select the model used by this module"),
+        models,
+        selected,
+        false,
+    );
     model.set_sensitive(enabled);
     group.add(&switch);
     group.add(&model);
@@ -615,11 +658,17 @@ fn validate_shortcuts(shortcuts: &ShortcutConfig) -> Result<(), String> {
             continue;
         }
         let Some((key, modifiers)) = gtk::accelerator_parse(accelerator) else {
-            return Err(format!("无效：{accelerator}"));
+            return Err(tr!(
+                "Invalid shortcut: {accelerator}",
+                accelerator = accelerator
+            ));
         };
         let normalized = gtk::accelerator_name(key, modifiers).to_string();
         if !used.insert(normalized) {
-            return Err(format!("快捷键重复：{accelerator}"));
+            return Err(tr!(
+                "Duplicate shortcut: {accelerator}",
+                accelerator = accelerator
+            ));
         }
     }
     Ok(())

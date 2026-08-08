@@ -13,7 +13,7 @@ use ppocr_app_protocol::{
     ProcessedImagePolicy, Progress, RecognitionResult, Recognize, RequestFailed, Shutdown,
     WorkerHello, read_frame, write_frame,
 };
-use thiserror::Error;
+use ppocr_i18n::tr;
 
 pub struct ImageJob {
     pub source_name: String,
@@ -111,9 +111,9 @@ impl Backend {
             let _ = session
                 .client
                 .send(Frame::new(Message::Shutdown(Shutdown { request_id })));
-            (self.callback)(BackendEvent::Status(
-                "正在重启识别进程以应用配置".to_owned(),
-            ));
+            (self.callback)(BackendEvent::Status(tr!(
+                "Restarting the recognition process to apply the configuration"
+            )));
             return;
         }
         drop(session_ref);
@@ -166,7 +166,9 @@ impl Backend {
             accept_result: true,
         };
         self.session.replace(Some(session));
-        (self.callback)(BackendEvent::Status("正在启动识别进程".to_owned()));
+        (self.callback)(BackendEvent::Status(tr!(
+            "Starting the recognition process"
+        )));
         let weak = Rc::downgrade(self);
         gtk::glib::MainContext::default().spawn_local(async move {
             while let Ok(event) = events.recv().await {
@@ -199,9 +201,9 @@ impl Backend {
                 if self.pending.borrow().is_some() {
                     self.spawn_pending();
                 } else if !was_stopping && !status.success {
-                    (self.callback)(BackendEvent::Error(format!(
-                        "识别进程异常退出：{}",
-                        status.description
+                    (self.callback)(BackendEvent::Error(tr!(
+                        "The recognition process exited unexpectedly: {description}",
+                        description = status.description
                     )));
                 }
             }
@@ -249,14 +251,16 @@ impl Backend {
                     configuration_id: session.configuration_id,
                     config: session.config.clone(),
                 }));
-                (self.callback)(BackendEvent::Status("正在加载模型并初始化产线".to_owned()));
+                (self.callback)(BackendEvent::Status(tr!(
+                    "Loading models and initializing the pipeline"
+                )));
                 drop(session_ref);
                 self.send(frame);
             }
             Message::Configured(_) => {
                 let frame = recognize_frame(session);
                 session.stage = SessionStage::Recognizing;
-                (self.callback)(BackendEvent::Status("正在识别图片".to_owned()));
+                (self.callback)(BackendEvent::Status(tr!("Recognizing the image")));
                 drop(session_ref);
                 self.send(frame);
             }
@@ -268,7 +272,7 @@ impl Backend {
                     .job
                     .take()
                     .map(|job| job.source_name)
-                    .unwrap_or_else(|| "图片".to_owned());
+                    .unwrap_or_else(|| tr!("Image"));
                 let accept_result = session.accept_result;
                 let keep_worker_warm = session.keep_worker_warm;
                 session.stage = SessionStage::Ready;
@@ -360,7 +364,11 @@ fn recognize_frame(session: &mut Session) -> Frame {
 }
 
 fn format_request_error(error: &RequestFailed) -> String {
-    format!("识别后端错误（{:?}）：{}", error.code, error.message)
+    tr!(
+        "Recognition backend error ({code}): {message}",
+        code = format!("{:?}", error.code),
+        message = error.message
+    )
 }
 
 enum ClientEvent {
@@ -503,21 +511,57 @@ fn worker_path_for(executable: &Path) -> PathBuf {
         .join(filename)
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 enum ClientError {
-    #[error("failed to resolve the current executable: {0}")]
     CurrentExecutable(std::io::Error),
-    #[error("failed to start OCR worker {path:?}: {source}")]
     Spawn {
         path: PathBuf,
         source: std::io::Error,
     },
-    #[error("OCR worker did not expose its {0} pipe")]
     MissingPipe(&'static str),
-    #[error("failed to create OCR worker I/O thread: {0}")]
-    Thread(#[from] std::io::Error),
-    #[error("OCR worker command channel closed")]
+    Thread(std::io::Error),
     CommandChannelClosed,
+}
+
+impl std::fmt::Display for ClientError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = match self {
+            Self::CurrentExecutable(error) => tr!(
+                "Failed to resolve the current executable: {error}",
+                error = error
+            ),
+            Self::Spawn { path, source } => tr!(
+                "Failed to start OCR worker {path}: {error}",
+                path = path.display(),
+                error = source
+            ),
+            Self::MissingPipe(pipe) => {
+                tr!("The OCR worker did not expose its {pipe} pipe", pipe = pipe)
+            }
+            Self::Thread(error) => tr!(
+                "Failed to create an OCR worker I/O thread: {error}",
+                error = error
+            ),
+            Self::CommandChannelClosed => tr!("The OCR worker command channel closed"),
+        };
+        formatter.write_str(&message)
+    }
+}
+
+impl std::error::Error for ClientError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::CurrentExecutable(error) | Self::Thread(error) => Some(error),
+            Self::Spawn { source, .. } => Some(source),
+            Self::MissingPipe(_) | Self::CommandChannelClosed => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for ClientError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Thread(error)
+    }
 }
 
 pub fn detect_image_format(bytes: &[u8]) -> Option<EncodedImageFormat> {
