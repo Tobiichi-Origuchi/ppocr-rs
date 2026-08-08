@@ -45,12 +45,20 @@ jobs:
             libgstreamer-plugins-base1.0-dev \
             libgtk-4-dev \
             libgtk4-layer-shell-dev \
-            pkg-config
+            locales \
+            pkg-config \
+            xz-utils
+          sudo locale-gen en_US.UTF-8 zh_CN.UTF-8
 
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Install Rust-aware gettext extractor
+        run: |
+          ./scripts/install-gettext.sh "$RUNNER_TEMP/gettext"
+          printf '%s\n' "$RUNNER_TEMP/gettext/bin" >> "$GITHUB_PATH"
 
       - name: Install the pinned Rust toolchain
         run: |
