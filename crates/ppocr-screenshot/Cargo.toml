@@ -22,5 +22,5 @@ gstreamer = "=0.25.3"
 gstreamer-app = "=0.25.2"
 gstreamer-gl = { version = "=0.25.2", features = ["v1_28"] }
 gstreamer-video = "=0.25.3"
-gtk4-layer-shell = "=0.8.0"
+gtk4-layer-shell = "=0.8.1"
 libwayshot = { version = "=0.9.0", default-features = false, features = ["png"] }
