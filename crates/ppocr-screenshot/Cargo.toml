@@ -18,9 +18,9 @@ ppocr-i18n = { path = "../ppocr-i18n" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "=0.13.13", default-features = false, features = ["async-io", "screencast"] }
-gstreamer = "=0.25.3"
+gstreamer = "=0.25.4"
 gstreamer-app = "=0.25.2"
-gstreamer-gl = { version = "=0.25.2", features = ["v1_28"] }
-gstreamer-video = "=0.25.3"
-gtk4-layer-shell = "=0.8.0"
+gstreamer-gl = { version = "=0.25.4", features = ["v1_28"] }
+gstreamer-video = "=0.25.4"
+gtk4-layer-shell = "=0.8.1"
 libwayshot = { version = "=0.9.0", default-features = false, features = ["png"] }
